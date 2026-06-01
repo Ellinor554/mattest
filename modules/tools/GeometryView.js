@@ -60,6 +60,7 @@ export class GeometryView {
     #autoRotateCache = true;
     #lastDimsForShape = new Map();
     #presentationEl = null;
+    #angleEls = [];
 
     constructor(engine = new GeometryEngine()) { this.#engine = engine; }
     get engine() { return this.#engine; }
@@ -108,6 +109,11 @@ export class GeometryView {
             <hr class="border-soft-border my-1"/>
             <h3 class="font-bold text-xs uppercase tracking-wider text-soft-muted">3D-objekt</h3>
             <div class="grid grid-cols-2 gap-1.5">${btns3d}</div>
+            <hr class="border-soft-border my-1"/>
+            <h3 class="font-bold text-xs uppercase tracking-wider text-soft-muted">Vinklar</h3>
+            <button data-action="add-angle" class="geo-btn w-full">
+                <i class="fas fa-drafting-compass text-xl" style="color:#a85c72;"></i>Vinkel
+            </button>
             <hr class="border-soft-border my-1"/>
             <div class="flex gap-2">
                 <button data-action="rotate-ccw" class="flex-1 bg-soft-bg p-2 rounded text-soft-text hover:bg-[#eae8e3] text-sm border border-soft-border" title="Rotera moturs (2D)"><i class="fas fa-undo"></i></button>
@@ -199,7 +205,12 @@ export class GeometryView {
             if (action === 'rotate-ccw') this.#engine.rotateSelected(-15);
             if (action === 'rotate-cw')  this.#engine.rotateSelected(15);
             if (action === 'delete')     this.#engine.deleteSelected();
-            if (action === 'clear')      this.#engine.clear();
+            if (action === 'clear') {
+                this.#engine.clear();
+                for (const el of this.#angleEls) el.remove();
+                this.#angleEls = [];
+            }
+            if (action === 'add-angle')  { this.#addAngleCard(); return; }
             if (action === 'toggle-spin') this.#engine.toggleAutoRotate3D();
             if (action === 'toggle-presentation') this.#engine.togglePresentationOpen();
         });
@@ -556,6 +567,225 @@ export class GeometryView {
             state.canvas.parentNode.removeChild(state.canvas);
         }
         this.#threeStates.delete(shapeId);
+    }
+
+    #addAngleCard() {
+        const ws = this.#els.workspace;
+        const cardW = 260, cardH = 258, headerH = 28, svgH = 170;
+        const initX = Math.max(10, ws.clientWidth  / 2 - cardW / 2 + (Math.random() * 60 - 30));
+        const initY = Math.max(10, ws.clientHeight - cardH - 20     + (Math.random() * 30 - 15));
+
+        const card = document.createElement('div');
+        card.className = 'angle-card';
+        card.style.cssText =
+            `width:${cardW}px;height:${cardH}px;left:${initX}px;top:${initY}px;` +
+            `transform-origin:top left;position:absolute;z-index:${++this.#zCounter};`;
+
+        let cardScale = 1;
+
+        // Header
+        const header = document.createElement('div');
+        header.style.cssText =
+            `width:100%;height:${headerH}px;display:flex;align-items:center;` +
+            `justify-content:center;font-size:11px;font-weight:700;color:#6a6b70;` +
+            `user-select:none;cursor:move;background:rgba(91,128,165,0.12);` +
+            `border-bottom:1px solid #d6d4d0;border-radius:14px 14px 0 0;box-sizing:border-box;`;
+        header.textContent = '⠿ Vinkel';
+        card.appendChild(header);
+
+        // SVG
+        const NS = 'http://www.w3.org/2000/svg';
+        const svg = document.createElementNS(NS, 'svg');
+        svg.setAttribute('width',   String(cardW));
+        svg.setAttribute('height',  String(svgH));
+        svg.setAttribute('viewBox', '-10 0 270 170');
+        svg.style.cssText = 'display:block;overflow:visible;';
+        card.appendChild(svg);
+
+        const vx = 115, vy = 155, rayLen = 120, fixedLen = 128, arcR = 40, sq = 15;
+
+        const mk = (tag, attrs) => {
+            const el = document.createElementNS(NS, tag);
+            for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+            return el;
+        };
+
+        svg.appendChild(mk('line', {
+            x1: vx, y1: vy, x2: vx + fixedLen, y2: vy,
+            stroke: '#4f7c75', 'stroke-width': '3', 'stroke-linecap': 'round',
+        }));
+        svg.appendChild(mk('circle', { cx: vx, cy: vy, r: '4', fill: '#4a4b50' }));
+
+        const arcPath = mk('path', {
+            fill: 'none', stroke: '#5b80a5', 'stroke-width': '2.5', 'stroke-linecap': 'round',
+        });
+        svg.appendChild(arcPath);
+
+        const movableRay = mk('line', { stroke: '#a85c72', 'stroke-width': '3', 'stroke-linecap': 'round' });
+        svg.appendChild(movableRay);
+
+        const degLabel = mk('text', {
+            'text-anchor': 'middle', fill: '#5b80a5', 'font-size': '13',
+            'font-weight': '700', 'font-family': 'Nunito,sans-serif', 'pointer-events': 'none',
+        });
+        svg.appendChild(degLabel);
+
+        const tip = mk('circle', {
+            r: '10', fill: '#a85c72', 'fill-opacity': '0.2',
+            stroke: '#a85c72', 'stroke-width': '2',
+        });
+        tip.style.cssText = 'cursor:grab;touch-action:none;';
+        svg.appendChild(tip);
+
+        // UI row (input + category label)
+        const uiArea = document.createElement('div');
+        uiArea.style.cssText =
+            'padding:8px 12px;display:flex;flex-direction:column;gap:5px;' +
+            'background:white;border-top:1px solid #f0f0ee;border-radius:0 0 14px 14px;';
+        uiArea.addEventListener('pointerdown', e => e.stopPropagation());
+        card.appendChild(uiArea);
+
+        const inputRow = document.createElement('div');
+        inputRow.style.cssText = 'display:flex;align-items:center;gap:8px;';
+
+        const lbl = document.createElement('label');
+        lbl.textContent = 'Grader:';
+        lbl.style.cssText = 'font-size:12px;font-weight:700;color:#4a4b50;white-space:nowrap;';
+        inputRow.appendChild(lbl);
+
+        const inp = document.createElement('input');
+        inp.type = 'number'; inp.min = '1'; inp.max = '180'; inp.step = '1';
+        inp.style.cssText =
+            'width:56px;border:1.5px solid #d6d4d0;border-radius:8px;padding:3px 6px;' +
+            'font-size:13px;font-weight:700;color:#4a4b50;text-align:center;' +
+            'outline:none;font-family:Nunito,sans-serif;';
+        inputRow.appendChild(inp);
+
+        const deg$ = document.createElement('span');
+        deg$.textContent = '°';
+        deg$.style.cssText = 'font-size:13px;font-weight:700;color:#4a4b50;';
+        inputRow.appendChild(deg$);
+        uiArea.appendChild(inputRow);
+
+        const catLbl = document.createElement('div');
+        catLbl.style.cssText =
+            'font-size:12px;font-weight:700;text-align:center;padding:3px 8px;border-radius:8px;';
+        uiArea.appendChild(catLbl);
+
+        // Snap + category helpers
+        const SNAP = [30, 45, 60, 90, 120, 135, 150];
+        const snapDeg = d => { for (const s of SNAP) if (Math.abs(d - s) <= 4) return s; return Math.round(d); };
+        const category = d => {
+            if (d === 90)  return { text: 'Rät vinkel ∟',  color: '#4f7c75', bg: 'rgba(139,179,156,0.22)' };
+            if (d === 180) return { text: 'Rät linje —',   color: '#6b7280', bg: 'rgba(107,114,128,0.15)' };
+            if (d < 90)    return { text: 'Spetsig vinkel', color: '#5b80a5', bg: 'rgba(141,177,209,0.22)' };
+            return                 { text: 'Trubbig vinkel', color: '#a85c72', bg: 'rgba(213,139,153,0.22)' };
+        };
+
+        const update = (deg, skipInput = false) => {
+            deg = Math.max(1, Math.min(180, Math.round(deg)));
+            const rad = deg * Math.PI / 180;
+            const ex = vx + rayLen * Math.cos(rad);
+            const ey = vy - rayLen * Math.sin(rad);
+            movableRay.setAttribute('x1', vx); movableRay.setAttribute('y1', vy);
+            movableRay.setAttribute('x2', ex); movableRay.setAttribute('y2', ey);
+            tip.setAttribute('cx', ex); tip.setAttribute('cy', ey);
+            if (deg === 90) {
+                arcPath.setAttribute('d', `M ${vx+sq},${vy} L ${vx+sq},${vy-sq} L ${vx},${vy-sq}`);
+            } else {
+                const bx = vx + arcR * Math.cos(rad);
+                const by = vy - arcR * Math.sin(rad);
+                arcPath.setAttribute('d',
+                    `M ${vx+arcR},${vy} A ${arcR},${arcR},0,0,0,${bx.toFixed(2)},${by.toFixed(2)}`);
+            }
+            const lr = arcR + 18, hr2 = (deg / 2) * Math.PI / 180;
+            degLabel.setAttribute('x', (vx + lr * Math.cos(hr2)).toFixed(2));
+            degLabel.setAttribute('y', (vy - lr * Math.sin(hr2) + 5).toFixed(2));
+            degLabel.textContent = deg + '°';
+            const cat = category(deg);
+            catLbl.textContent = cat.text;
+            catLbl.style.color = cat.color;
+            catLbl.style.background = cat.bg;
+            if (!skipInput) inp.value = deg;
+        };
+
+        inp.addEventListener('input', () => {
+            const v = parseInt(inp.value, 10);
+            if (!isNaN(v) && v >= 1 && v <= 180) update(v, true);
+        });
+        inp.addEventListener('blur', () => {
+            let v = parseInt(inp.value, 10);
+            update(isNaN(v) ? 1 : v);
+            inp.style.borderColor = '#d6d4d0';
+        });
+        inp.addEventListener('focus', () => { inp.style.borderColor = '#5b80a5'; });
+
+        // Tip drag — adjusts the angle
+        tip.addEventListener('pointerdown', e => {
+            if (e.button !== 0) return;
+            e.preventDefault(); e.stopPropagation();
+            tip.setPointerCapture(e.pointerId);
+            tip.style.cursor = 'grabbing';
+            const onMove = ev => {
+                const rect = svg.getBoundingClientRect();
+                const mx = (ev.clientX - rect.left) / rect.width * 270 - 10;
+                const my = (ev.clientY - rect.top)  / rect.height * 170;
+                const raw = Math.atan2(vy - my, mx - vx) * 180 / Math.PI;
+                update(snapDeg(Math.max(1, Math.min(180, raw))));
+            };
+            const onUp = () => { tip.style.cursor = 'grab'; };
+            tip.addEventListener('pointermove', onMove);
+            tip.addEventListener('pointerup',     onUp, { once: true });
+            tip.addEventListener('pointercancel', onUp, { once: true });
+        });
+
+        // Resize handle
+        const rh = document.createElement('div');
+        rh.className = 'geo-resize-handle';
+        rh.textContent = '⌟';
+        let rhStartX = 0, rhScale0 = 1;
+        rh.addEventListener('pointerdown', e => {
+            if (e.button !== 0) return;
+            e.preventDefault(); e.stopPropagation();
+            rhStartX = e.clientX; rhScale0 = cardScale;
+            rh.setPointerCapture(e.pointerId);
+        });
+        rh.addEventListener('pointermove', e => {
+            cardScale = Math.max(0.4, Math.min(4, rhScale0 + (e.clientX - rhStartX) / cardW));
+            card.style.transform = `scale(${cardScale})`;
+        });
+        rh.addEventListener('pointerup', () => {});
+        card.appendChild(rh);
+
+        // Card drag via header
+        let cdDrag = false, cdSX = 0, cdSY = 0, cdEX = initX, cdEY = initY;
+        header.addEventListener('pointerdown', e => {
+            if (e.button !== 0) return;
+            e.preventDefault();
+            cdDrag = true;
+            cdSX = e.clientX; cdSY = e.clientY;
+            cdEX = parseFloat(card.style.left) || 0;
+            cdEY = parseFloat(card.style.top)  || 0;
+            this.#zCounter += 1;
+            card.style.zIndex = String(this.#zCounter);
+            header.setPointerCapture(e.pointerId);
+        });
+        header.addEventListener('pointermove', e => {
+            if (!cdDrag) return;
+            card.style.left = (cdEX + e.clientX - cdSX) + 'px';
+            card.style.top  = (cdEY + e.clientY - cdSY) + 'px';
+        });
+        const endDrag = e => {
+            if (!cdDrag) return;
+            cdDrag = false;
+            try { header.releasePointerCapture(e.pointerId); } catch {}
+        };
+        header.addEventListener('pointerup',     endDrag);
+        header.addEventListener('pointercancel', endDrag);
+
+        ws.appendChild(card);
+        this.#angleEls.push(card);
+        update(45);
     }
 
     #disposeAllThree() {

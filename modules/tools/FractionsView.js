@@ -62,27 +62,33 @@ function buildStackedLabels(px, py, labels, fs, textColor) {
     return result;
 }
 
-function buildCircleSVG(d, color, showDecimal, showPercent) {
+function buildCircleSVG(d, color, showDecimal, showPercent, n = d) {
     const cx = FRAC_R + 4, cy = FRAC_R + 4, r = FRAC_R;
     const textColor  = color === '#dec894' ? '#5a4a1a' : '#ffffff';
     const angleStep  = 360 / d;
     const labels     = getFracLabels(d, showDecimal, showPercent);
     let paths = '';
     if (d === 1) {
-        paths  = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}" stroke="white" stroke-width="2.5"/>`;
-        const fs = labels.length <= 1 ? 22 : labels.length === 2 ? 18 : 14;
-        paths += buildStackedLabels(cx, cy, labels, fs, textColor);
+        const filled = n >= 1;
+        paths  = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}" fill-opacity="${filled ? 1 : 0.15}" stroke="${filled ? 'white' : '#d6d4d0'}" stroke-width="2.5"/>`;
+        if (filled) {
+            const fs = labels.length <= 1 ? 22 : labels.length === 2 ? 18 : 14;
+            paths += buildStackedLabels(cx, cy, labels, fs, textColor);
+        }
     } else {
         for (let i = 0; i < d; i++) {
+            const filled = i < n;
             const startA = i * angleStep, endA = startA + angleStep;
             const p1 = fracPolarXY(cx, cy, r, startA);
             const p2 = fracPolarXY(cx, cy, r, endA);
             const lg = angleStep > 180 ? 1 : 0;
-            paths += `<path d="M${cx},${cy} L${p1.x},${p1.y} A${r},${r},0,${lg},1,${p2.x},${p2.y}Z" fill="${color}" stroke="white" stroke-width="2.5" data-slice="${i}" class="frac-slice"/>`;
-            const lp = fracPolarXY(cx, cy, r * 0.62, startA + angleStep / 2);
-            const fsBase = d <= 4 ? 16 : d <= 8 ? 13 : 11;
-            const fs = labels.length >= 3 ? Math.max(8, fsBase - 2) : fsBase;
-            paths += buildStackedLabels(lp.x, lp.y, labels, fs, textColor);
+            paths += `<path d="M${cx},${cy} L${p1.x},${p1.y} A${r},${r},0,${lg},1,${p2.x},${p2.y}Z" fill="${color}" fill-opacity="${filled ? 1 : 0.15}" stroke="${filled ? 'white' : '#d6d4d0'}" stroke-width="2.5" data-slice="${i}" class="frac-slice"/>`;
+            if (filled) {
+                const lp = fracPolarXY(cx, cy, r * 0.62, startA + angleStep / 2);
+                const fsBase = d <= 4 ? 16 : d <= 8 ? 13 : 11;
+                const fs = labels.length >= 3 ? Math.max(8, fsBase - 2) : fsBase;
+                paths += buildStackedLabels(lp.x, lp.y, labels, fs, textColor);
+            }
         }
     }
     return `<svg width="${FRAC_SVG}" height="${FRAC_SVG}" viewBox="0 0 ${FRAC_SVG} ${FRAC_SVG}" style="overflow:visible;display:block;">${paths}</svg>`;
@@ -266,8 +272,12 @@ export class FractionsView {
 
     #buildWorkspace() {
         const ws = document.createElement('div');
-        ws.className = 'flex-1 relative overflow-hidden bg-white';
-        ws.style.cssText = 'position:relative;overflow:hidden;';
+        ws.className = 'flex-1 relative overflow-hidden';
+        ws.style.cssText =
+            'position:relative;overflow:hidden;' +
+            'background-color:#f4f3ef;' +
+            'background-image:radial-gradient(#d6d4d0 1px, transparent 1px);' +
+            'background-size:20px 20px;';
         this.#workspace = ws;
         return ws;
     }
@@ -283,10 +293,12 @@ export class FractionsView {
         wrapper.dataset.scale = FRAC_BOARD_SCALE;
         wrapper.dataset.d     = d;
         wrapper.dataset.color = color;
-        wrapper.innerHTML     = buildCircleSVG(d, color, this.#showDecimal, this.#showPercent);
+        wrapper.dataset.n     = String(d);
+        wrapper.innerHTML     = buildCircleSVG(d, color, this.#showDecimal, this.#showPercent, d);
         ws.appendChild(wrapper);
         this.#applyFracTransform(wrapper);
         this.#addMoveHandle(wrapper);
+        if (d > 1) wrapper.appendChild(this.#makeNumeratorStepper(wrapper, d));
         this.#addResizeHandle(wrapper);
 
         if (d === 1) {
@@ -302,6 +314,69 @@ export class FractionsView {
             });
             this.#attachSliceListeners(wrapper, d, color);
         }
+    }
+
+    #makeNumeratorStepper(wrapper, d) {
+        const stepper = document.createElement('div');
+        stepper.style.cssText =
+            'position:absolute;bottom:-40px;left:50%;transform:translateX(-50%);' +
+            'display:flex;align-items:center;gap:5px;background:white;' +
+            'border:1.5px solid #d6d4d0;border-radius:20px;padding:3px 10px;' +
+            'box-shadow:0 2px 8px rgba(0,0,0,0.10);white-space:nowrap;' +
+            'user-select:none;touch-action:none;z-index:5;';
+        stepper.addEventListener('pointerdown', e => e.stopPropagation());
+
+        const mkBtn = txt => {
+            const b = document.createElement('button');
+            b.textContent = txt;
+            b.style.cssText =
+                'width:22px;height:22px;border-radius:50%;border:1.5px solid #d6d4d0;' +
+                'background:#f4f3ef;font-size:16px;font-weight:700;color:#4a4b50;' +
+                'cursor:pointer;line-height:1;padding:0;flex-shrink:0;';
+            return b;
+        };
+
+        const minusBtn = mkBtn('−');
+        const label    = document.createElement('span');
+        label.style.cssText =
+            'font-size:14px;font-weight:800;color:#4a4b50;min-width:36px;' +
+            'text-align:center;font-family:Nunito,sans-serif;';
+        const plusBtn = mkBtn('+');
+
+        const sync = () => {
+            const n = parseInt(wrapper.dataset.n, 10);
+            label.textContent    = `${n}⁄${d}`;
+            minusBtn.disabled    = n <= 0;
+            plusBtn.disabled     = n >= d;
+            minusBtn.style.opacity = n <= 0 ? '0.3' : '1';
+            plusBtn.style.opacity  = n >= d ? '0.3' : '1';
+        };
+
+        const rebuild = n => {
+            wrapper.dataset.n = String(n);
+            const color = wrapper.dataset.color;
+            const oldSvg = wrapper.querySelector('svg');
+            const tmp = document.createElement('div');
+            tmp.innerHTML = buildCircleSVG(d, color, this.#showDecimal, this.#showPercent, n);
+            if (oldSvg) oldSvg.replaceWith(tmp.firstElementChild);
+            this.#attachSliceListeners(wrapper, d, color);
+            sync();
+        };
+
+        minusBtn.addEventListener('click', () => {
+            const n = parseInt(wrapper.dataset.n, 10);
+            if (n > 0) rebuild(n - 1);
+        });
+        plusBtn.addEventListener('click', () => {
+            const n = parseInt(wrapper.dataset.n, 10);
+            if (n < d) rebuild(n + 1);
+        });
+
+        stepper.appendChild(minusBtn);
+        stepper.appendChild(label);
+        stepper.appendChild(plusBtn);
+        sync();
+        return stepper;
     }
 
     #makeFracElement(x, y) {
@@ -480,8 +555,9 @@ export class FractionsView {
                 // Full circle
                 const oldSvg = el.querySelector('svg');
                 if (oldSvg) {
+                    const n = parseInt(el.dataset.n ?? String(d), 10);
                     const tmp = document.createElement('div');
-                    tmp.innerHTML = buildCircleSVG(d, color, this.#showDecimal, this.#showPercent);
+                    tmp.innerHTML = buildCircleSVG(d, color, this.#showDecimal, this.#showPercent, n);
                     oldSvg.replaceWith(tmp.firstElementChild);
                     if (d > 1) this.#attachSliceListeners(el, d, color);
                 }
