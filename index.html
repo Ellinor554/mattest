@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Interaktiva matematikverktyg för elever</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        soft: {
+                            bg: '#f4f3ef',
+                            surface: '#ffffff',
+                            text: '#4a4b50',
+                            muted: '#8c8d92',
+                            border: '#d6d4d0',
+                            blue: '#5b80a5',
+                            blueLight: '#8db1d1',
+                            green: '#4f7c75',
+                            greenLight: '#8bb39c',
+                            purple: '#6a6281',
+                            purpleLight: '#938db3',
+                            pink: '#a85c72',
+                            pinkLight: '#d58b99',
+                            yellow: '#dec894',
+                            yellowDark: '#b8a36e',
+                            teal: '#3d8a8a',
+                            tealLight: '#72b5b5'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="text-soft-text flex flex-col h-screen">
+    <header class="bg-soft-surface shadow-sm z-20 px-6 py-4 flex items-center justify-between shrink-0 border-b border-soft-border">
+        <div class="flex items-center gap-4">
+            <button id="btn-home" class="hidden text-soft-muted hover:text-soft-blue transition-colors p-2 rounded-full hover:bg-soft-bg">
+                <i class="fas fa-arrow-left text-xl"></i>
+            </button>
+            <h1 class="text-2xl font-bold text-soft-text tracking-tight" id="app-title">
+                <i class="fas fa-shapes text-soft-blue mr-2"></i> Matematikutforskaren
+            </h1>
+        </div>
+        <div id="controls-area" class="flex gap-3"></div>
+    </header>
+
+    <main class="flex-1 relative overflow-hidden bg-soft-bg" id="tool-mount"></main>
+
+    <script type="module" src="modules/main.js"></script>
+</body>
+</html>
