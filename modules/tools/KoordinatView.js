@@ -29,47 +29,47 @@ export class KoordinatView {
 
     mount(parentEl) {
         this.#root = document.createElement('section');
-        this.#root.className = 'tool-view flex flex-row h-full overflow-hidden';
+        this.#root.className = 'view-section flex flex-row h-full overflow-hidden';
 
         this.#root.innerHTML = `
-            <aside class="tool-sidebar flex flex-col gap-3 p-3 overflow-y-auto" style="min-width:210px;max-width:210px;">
-                <div class="text-xs font-bold text-muted uppercase tracking-wide">Läge</div>
+            <aside class="w-52 bg-soft-surface shadow-md z-10 p-4 flex flex-col gap-3 overflow-y-auto border-r border-soft-border shrink-0">
+                <div class="text-xs font-bold text-soft-muted uppercase tracking-widest">Läge</div>
                 <div class="flex gap-2">
-                    <button data-mode="q1" class="flex-1 px-2 py-1 rounded font-bold text-sm border-2 border-blue-400 bg-blue-50 text-blue-700">Kv. I (0–10)</button>
-                    <button data-mode="all" class="flex-1 px-2 py-1 rounded font-bold text-sm border-2 border-gray-300 text-gray-600 bg-white">Alla (±10)</button>
+                    <button data-mode="q1" class="flex-1 px-2 py-1 rounded-lg font-bold text-sm border-2 border-soft-blue bg-soft-blue/10 text-soft-blue">Kv. I (0–10)</button>
+                    <button data-mode="all" class="flex-1 px-2 py-1 rounded-lg font-bold text-sm border-2 border-soft-border text-soft-muted bg-white">Alla (±10)</button>
                 </div>
-                <hr/>
-                <div class="text-xs font-bold text-muted uppercase tracking-wide">Lägg till punkt</div>
+                <hr class="border-soft-border"/>
+                <div class="text-xs font-bold text-soft-muted uppercase tracking-widest">Lägg till punkt</div>
                 <div class="flex flex-col gap-1">
                     <div class="flex gap-1 items-center text-sm">
-                        <span class="w-6 text-right text-gray-500">x</span>
-                        <input id="koord-x" type="number" step="1" class="tool-input w-full px-2 py-1 rounded border text-sm" placeholder="0"/>
+                        <span class="w-6 text-right text-soft-muted font-semibold">x</span>
+                        <input id="koord-x" type="number" step="1" class="w-full border border-soft-border rounded-lg px-2 py-1 text-sm font-semibold text-soft-text bg-white focus:outline-none focus:border-soft-blue" placeholder="0"/>
                     </div>
                     <div class="flex gap-1 items-center text-sm">
-                        <span class="w-6 text-right text-gray-500">y</span>
-                        <input id="koord-y" type="number" step="1" class="tool-input w-full px-2 py-1 rounded border text-sm" placeholder="0"/>
+                        <span class="w-6 text-right text-soft-muted font-semibold">y</span>
+                        <input id="koord-y" type="number" step="1" class="w-full border border-soft-border rounded-lg px-2 py-1 text-sm font-semibold text-soft-text bg-white focus:outline-none focus:border-soft-blue" placeholder="0"/>
                     </div>
                     <div class="flex gap-1 items-center text-sm">
-                        <span class="w-6 text-right text-gray-500">P</span>
-                        <input id="koord-label" type="text" maxlength="3" class="tool-input w-full px-2 py-1 rounded border text-sm" placeholder="A"/>
+                        <span class="w-6 text-right text-soft-muted font-semibold">P</span>
+                        <input id="koord-label" type="text" maxlength="3" class="w-full border border-soft-border rounded-lg px-2 py-1 text-sm font-semibold text-soft-text bg-white focus:outline-none focus:border-soft-blue" placeholder="A"/>
                     </div>
-                    <button id="koord-add" class="tool-btn mt-1">Lägg till</button>
+                    <button id="koord-add" class="mt-1 w-full px-3 py-2 bg-soft-blue text-white font-bold rounded-xl text-sm hover:opacity-90 transition-opacity">Lägg till</button>
                 </div>
-                <hr/>
-                <div class="flex gap-2 flex-wrap text-xs">
+                <hr class="border-soft-border"/>
+                <div class="flex gap-2 flex-wrap text-xs text-soft-text font-semibold">
                     <label class="flex items-center gap-1 cursor-pointer"><input id="koord-show-grid" type="checkbox" checked class="mr-1"/>Rutnät</label>
                     <label class="flex items-center gap-1 cursor-pointer"><input id="koord-show-labels" type="checkbox" checked class="mr-1"/>Etiketter</label>
                 </div>
-                <hr/>
-                <div class="text-xs font-bold text-muted uppercase tracking-wide">Punkter</div>
+                <hr class="border-soft-border"/>
+                <div class="text-xs font-bold text-soft-muted uppercase tracking-widest">Punkter</div>
                 <div id="koord-pt-list" class="flex flex-col gap-1 overflow-y-auto" style="max-height:160px;"></div>
-                <button id="koord-clear" class="tool-btn-danger mt-auto">Rensa alla</button>
-                <div id="koord-coord-display" class="text-xs text-gray-500 text-center min-h-4"></div>
-                <div class="text-xs text-muted bg-blue-50 rounded p-2 mt-1">
+                <button id="koord-clear" class="mt-auto px-3 py-2 bg-soft-pink/20 text-soft-pink font-bold rounded-xl text-sm hover:bg-soft-pink/30 transition-colors">Rensa alla</button>
+                <div id="koord-coord-display" class="text-xs text-soft-muted text-center"></div>
+                <div class="text-xs text-soft-muted bg-soft-blue/10 rounded-xl p-3 mt-1 leading-relaxed">
                     💡 Klicka i koordinatsystemet för att lägga till en punkt. Dra en punkt för att flytta den.
                 </div>
             </aside>
-            <div class="flex-1 flex items-center justify-center overflow-hidden bg-gray-50 p-2">
+            <div class="flex-1 flex items-center justify-center overflow-hidden bg-soft-bg p-2">
                 <svg id="koord-svg" viewBox="0 0 ${SVG_W} ${SVG_H}"
                      style="width:100%;height:100%;max-width:${SVG_W}px;max-height:${SVG_H}px;touch-action:none;"
                      xmlns="http://www.w3.org/2000/svg"></svg>
@@ -196,7 +196,7 @@ export class KoordinatView {
 
         this.#root.querySelectorAll('[data-mode]').forEach(btn => {
             const active = btn.dataset.mode === state.mode;
-            btn.className = `flex-1 px-2 py-1 rounded font-bold text-sm border-2 ${active ? 'border-blue-400 bg-blue-50 text-blue-700' : 'border-gray-300 text-gray-600 bg-white'}`;
+            btn.className = `flex-1 px-2 py-1 rounded-lg font-bold text-sm border-2 ${active ? 'border-soft-blue bg-soft-blue/10 text-soft-blue' : 'border-soft-border text-soft-muted bg-white'}`;
         });
 
         this.#renderSvg(state, min, max);
@@ -276,12 +276,12 @@ export class KoordinatView {
         this.#ptList.innerHTML = '';
         for (const pt of state.points) {
             const row = document.createElement('div');
-            row.className = 'flex items-center justify-between gap-1 text-xs rounded px-1 py-0.5 bg-gray-50';
+            row.className = 'flex items-center justify-between gap-1 text-xs rounded px-1 py-0.5 bg-soft-bg';
             row.innerHTML = `
                 <span class="w-4 h-4 rounded-full inline-block" style="background:${pt.color};"></span>
                 <span class="font-bold" style="color:${pt.color};">${pt.label}</span>
                 <span class="text-gray-600 flex-1 text-center">(${pt.x}, ${pt.y})</span>
-                <button class="text-red-400 hover:text-red-600 font-bold px-1" data-remove="${pt.id}">✕</button>`;
+                <button class="text-soft-pink hover:opacity-75 font-bold px-1" data-remove="${pt.id}">✕</button>`;
             row.querySelector('[data-remove]').addEventListener('click', () => this.#engine.removePoint(pt.id));
             this.#ptList.appendChild(row);
         }

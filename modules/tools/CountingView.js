@@ -33,7 +33,7 @@ export class CountingView {
     mount(parent) {
         this.#root = document.createElement('section');
         this.#root.id = 'view-counting';
-        this.#root.className = 'flex-col h-full bg-soft-surface';
+        this.#root.className = 'view-section flex flex-col h-full bg-soft-surface';
         this.#root.innerHTML = this.#template();
         parent.appendChild(this.#root);
 

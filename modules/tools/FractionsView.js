@@ -256,7 +256,7 @@ export class FractionsView {
         bar.className = 'flex items-center gap-3 px-4 py-2 bg-white border-b border-soft-border shrink-0';
 
         const clearBtn = document.createElement('button');
-        clearBtn.className = 'ml-auto px-4 py-1.5 bg-soft-redLight/20 text-soft-red font-bold rounded-full hover:bg-soft-redLight/40 transition-colors text-sm flex items-center gap-2';
+        clearBtn.className = 'ml-auto px-4 py-1.5 bg-soft-pink/20 text-soft-pink font-bold rounded-full hover:bg-soft-pink/40 transition-colors text-sm flex items-center gap-2';
         clearBtn.innerHTML = '<i class="fas fa-trash-alt text-xs"></i>Rensa';
         clearBtn.addEventListener('click', () => this.#clearWorkspace());
         bar.appendChild(clearBtn);

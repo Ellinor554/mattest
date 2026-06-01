@@ -37,7 +37,7 @@ export class StatisticsView {
     // ── layout ────────────────────────────────────────────────────────────────
     #buildDOM() {
         const section = document.createElement('section');
-        section.className = 'tool-view flex flex-row h-full overflow-hidden';
+        section.className = 'view-section flex flex-row h-full overflow-hidden';
 
         // ── sidebar ──────────────────────────────────────────────────────────
         const sidebar = document.createElement('div');
