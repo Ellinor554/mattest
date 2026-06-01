@@ -227,9 +227,10 @@ export class CountingView {
             ball.style.top  = '';
             ball.style.zIndex = '';
 
-            if (droppedZone === null) {
-                originalParent.appendChild(ball);
-            } else {
+            // Always return to a zone before calling the engine so the ball
+            // is never left as an orphan on document.body.
+            originalParent.appendChild(ball);
+            if (droppedZone !== null) {
                 this.#engine.setBallZone(ballIndex, droppedZone);
             }
         });
