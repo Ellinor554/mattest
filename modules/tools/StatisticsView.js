@@ -1,5 +1,5 @@
 const NS = 'http://www.w3.org/2000/svg';
-const PAD_L = 55, PAD_R = 20, PAD_T = 55, PAD_B = 55;
+const PAD_L = 72, PAD_R = 24, PAD_T = 68, PAD_B = 68;
 
 function gcd(a, b) { return b === 0 ? a : gcd(b, a % b); }
 
@@ -234,11 +234,11 @@ export class StatisticsView {
 
         // title
         this.#svg.appendChild(svgEl('text', {
-            x: W / 2, y: 30,
+            x: W / 2, y: 36,
             'text-anchor': 'middle',
-            'font-size': '16',
+            'font-size': '22',
             'font-weight': 'bold',
-            fill: '#333',
+            fill: '#111',
         })).textContent = title;
 
         if (chartType === 'bar')  this.#renderBar(data,  W, H);
@@ -256,15 +256,15 @@ export class StatisticsView {
         const gap     = chartW / data.length;
 
         // axes
-        this.#svg.appendChild(svgEl('line', { x1: PAD_L, y1: PAD_T, x2: PAD_L, y2: PAD_T + chartH, stroke:'#555', 'stroke-width':1.5 }));
-        this.#svg.appendChild(svgEl('line', { x1: PAD_L, y1: PAD_T + chartH, x2: PAD_L + chartW, y2: PAD_T + chartH, stroke:'#555', 'stroke-width':1.5 }));
+        this.#svg.appendChild(svgEl('line', { x1: PAD_L, y1: PAD_T, x2: PAD_L, y2: PAD_T + chartH, stroke:'#222', 'stroke-width':2 }));
+        this.#svg.appendChild(svgEl('line', { x1: PAD_L, y1: PAD_T + chartH, x2: PAD_L + chartW, y2: PAD_T + chartH, stroke:'#222', 'stroke-width':2 }));
 
         // y-axis ticks
         for (let i = 0; i <= ySteps; i++) {
             const val = (yMax / ySteps) * i;
             const gy  = PAD_T + chartH - (i / ySteps) * chartH;
-            this.#svg.appendChild(svgEl('line', { x1: PAD_L - 4, y1: gy, x2: PAD_L + chartW, y2: gy, stroke:'#ddd', 'stroke-width':1 }));
-            const tick = svgEl('text', { x: PAD_L - 8, y: gy + 4, 'text-anchor':'end', 'font-size':'10', fill:'#555' });
+            this.#svg.appendChild(svgEl('line', { x1: PAD_L - 5, y1: gy, x2: PAD_L + chartW, y2: gy, stroke:'#ccc', 'stroke-width':1.2 }));
+            const tick = svgEl('text', { x: PAD_L - 10, y: gy + 5, 'text-anchor':'end', 'font-size':'15', 'font-weight':'600', fill:'#1a1a1a' });
             tick.textContent = val;
             this.#svg.appendChild(tick);
         }
@@ -283,12 +283,12 @@ export class StatisticsView {
             this.#svg.appendChild(rect);
 
             // value label
-            const vlbl = svgEl('text', { x: bx + barW/2, y: by - 4, 'text-anchor':'middle', 'font-size':'11', fill:'#333' });
+            const vlbl = svgEl('text', { x: bx + barW/2, y: by - 6, 'text-anchor':'middle', 'font-size':'15', 'font-weight':'700', fill:'#111' });
             vlbl.textContent = parseFloat(row.value.toFixed(1));
             this.#svg.appendChild(vlbl);
 
             // x label
-            const xlbl = svgEl('text', { x: bx + barW/2, y: PAD_T + chartH + 16, 'text-anchor':'middle', 'font-size':'11', fill:'#333' });
+            const xlbl = svgEl('text', { x: bx + barW/2, y: PAD_T + chartH + 22, 'text-anchor':'middle', 'font-size':'15', 'font-weight':'600', fill:'#111' });
             xlbl.textContent = row.label;
             this.#svg.appendChild(xlbl);
 
@@ -327,15 +327,15 @@ export class StatisticsView {
         const step    = chartW / Math.max(data.length - 1, 1);
 
         // axes
-        this.#svg.appendChild(svgEl('line', { x1: PAD_L, y1: PAD_T, x2: PAD_L, y2: PAD_T + chartH, stroke:'#555', 'stroke-width':1.5 }));
-        this.#svg.appendChild(svgEl('line', { x1: PAD_L, y1: PAD_T + chartH, x2: PAD_L + chartW, y2: PAD_T + chartH, stroke:'#555', 'stroke-width':1.5 }));
+        this.#svg.appendChild(svgEl('line', { x1: PAD_L, y1: PAD_T, x2: PAD_L, y2: PAD_T + chartH, stroke:'#222', 'stroke-width':2 }));
+        this.#svg.appendChild(svgEl('line', { x1: PAD_L, y1: PAD_T + chartH, x2: PAD_L + chartW, y2: PAD_T + chartH, stroke:'#222', 'stroke-width':2 }));
 
         // y-axis ticks
         for (let i = 0; i <= ySteps; i++) {
             const val = (yMax / ySteps) * i;
             const gy  = PAD_T + chartH - (i / ySteps) * chartH;
-            this.#svg.appendChild(svgEl('line', { x1: PAD_L - 4, y1: gy, x2: PAD_L + chartW, y2: gy, stroke:'#ddd', 'stroke-width':1 }));
-            const tick = svgEl('text', { x: PAD_L - 8, y: gy + 4, 'text-anchor':'end', 'font-size':'10', fill:'#555' });
+            this.#svg.appendChild(svgEl('line', { x1: PAD_L - 5, y1: gy, x2: PAD_L + chartW, y2: gy, stroke:'#ccc', 'stroke-width':1.2 }));
+            const tick = svgEl('text', { x: PAD_L - 10, y: gy + 5, 'text-anchor':'end', 'font-size':'15', 'font-weight':'600', fill:'#1a1a1a' });
             tick.textContent = val;
             this.#svg.appendChild(tick);
         }
@@ -367,12 +367,12 @@ export class StatisticsView {
             this.#svg.appendChild(dot);
 
             // value label
-            const vlbl = svgEl('text', { x: px, y: py - 12, 'text-anchor':'middle', 'font-size':'11', fill:'#333' });
+            const vlbl = svgEl('text', { x: px, y: py - 14, 'text-anchor':'middle', 'font-size':'15', 'font-weight':'700', fill:'#111' });
             vlbl.textContent = parseFloat(row.value.toFixed(1));
             this.#svg.appendChild(vlbl);
 
             // x label
-            const xlbl = svgEl('text', { x: px, y: PAD_T + chartH + 16, 'text-anchor':'middle', 'font-size':'11', fill:'#333' });
+            const xlbl = svgEl('text', { x: px, y: PAD_T + chartH + 22, 'text-anchor':'middle', 'font-size':'15', 'font-weight':'600', fill:'#111' });
             xlbl.textContent = row.label;
             this.#svg.appendChild(xlbl);
 
@@ -436,7 +436,7 @@ export class StatisticsView {
                     x: lx.toFixed(1), y: ly.toFixed(1),
                     'text-anchor': 'middle',
                     'dominant-baseline': 'central',
-                    'font-size': Math.max(11, Math.min(15, rPie * 0.18)).toFixed(0),
+                    'font-size': Math.max(14, Math.min(22, rPie * 0.22)).toFixed(0),
                     'font-weight': '700',
                     fill: '#fff',
                     stroke: 'rgba(0,0,0,0.35)',
@@ -454,9 +454,9 @@ export class StatisticsView {
         // legend
         const legendX = W * 0.76;
         data.forEach((row, i) => {
-            const ly = PAD_T + i * 22;
-            this.#svg.appendChild(svgEl('rect', { x: legendX, y: ly, width: 14, height: 14, fill: row.color, rx: 2 }));
-            const lbl = svgEl('text', { x: legendX + 18, y: ly + 11, 'font-size': '12', fill: '#333' });
+            const ly = PAD_T + i * 28;
+            this.#svg.appendChild(svgEl('rect', { x: legendX, y: ly, width: 18, height: 18, fill: row.color, rx: 3 }));
+            const lbl = svgEl('text', { x: legendX + 24, y: ly + 14, 'font-size': '15', 'font-weight': '600', fill: '#111' });
             lbl.textContent = `${row.label} (${this.#pieValueLabel(row.value, total, display)})`;
             this.#svg.appendChild(lbl);
         });
