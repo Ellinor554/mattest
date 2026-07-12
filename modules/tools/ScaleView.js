@@ -274,15 +274,6 @@ export class ScaleView {
         const W = canvas.width, H = canvas.height;
         ctx.clearRect(0, 0, W, H);
 
-        ctx.strokeStyle = '#b8d4f0';
-        ctx.lineWidth   = 0.8;
-        for (let x = 0; x <= W; x += CELL_PX) {
-            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
-        }
-        for (let y = 0; y <= H; y += CELL_PX) {
-            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
-        }
-
         const objW = wCm * CELL_PX;
         const objH = hCm * CELL_PX;
         const objX = Math.max(40, (W - objW) / 2);
