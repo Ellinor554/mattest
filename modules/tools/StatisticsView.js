@@ -1,6 +1,8 @@
 const NS = 'http://www.w3.org/2000/svg';
 const PAD_L = 55, PAD_R = 20, PAD_T = 55, PAD_B = 55;
 
+function gcd(a, b) { return b === 0 ? a : gcd(b, a % b); }
+
 function svgEl(tag, attrs = {}) {
     const el = document.createElementNS(NS, tag);
     Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
@@ -17,6 +19,8 @@ export class StatisticsView {
     #titleInput;
     #tabBtns = {};
     #rowsContainer;
+    #pieOptsSection;
+    #pieDisplayBtns = {};
 
     constructor(engine) {
         this.#engine = engine;
@@ -72,6 +76,29 @@ export class StatisticsView {
         });
         sidebar.appendChild(tabsDiv);
 
+        // pie display options (hidden unless pie is active)
+        this.#pieOptsSection = document.createElement('div');
+        this.#pieOptsSection.className = 'flex flex-col gap-1';
+        this.#pieOptsSection.style.display = 'none';
+
+        const pieOptsLbl = document.createElement('div');
+        pieOptsLbl.className = 'text-xs font-semibold text-gray-600';
+        pieOptsLbl.textContent = 'Visa som';
+        this.#pieOptsSection.appendChild(pieOptsLbl);
+
+        const pieOptsRow = document.createElement('div');
+        pieOptsRow.className = 'flex gap-1';
+        [['antal','Antal'], ['andel','Andel'], ['procent','Procent']].forEach(([mode, lbl]) => {
+            const btn = document.createElement('button');
+            btn.className = 'chart-tab flex-1 text-xs py-1 rounded border';
+            btn.textContent = lbl;
+            btn.addEventListener('click', () => this.#engine.setPieDisplay(mode));
+            this.#pieDisplayBtns[mode] = btn;
+            pieOptsRow.appendChild(btn);
+        });
+        this.#pieOptsSection.appendChild(pieOptsRow);
+        sidebar.appendChild(this.#pieOptsSection);
+
         // data rows
         const rowsLbl = document.createElement('div');
         rowsLbl.className = 'text-xs font-semibold text-gray-600';
@@ -110,7 +137,11 @@ export class StatisticsView {
 
     // ── render ────────────────────────────────────────────────────────────────
     #render() {
-        this.#updateSidebarRows();
+        const focused = document.activeElement;
+        const typingInRows = focused &&
+            this.#rowsContainer.contains(focused) &&
+            focused.tagName === 'INPUT';
+        if (!typingInRows) this.#updateSidebarRows();
         this.#updateTabHighlight();
         this.#renderChart();
     }
@@ -119,6 +150,14 @@ export class StatisticsView {
         const cur = this.#engine.getChartType();
         Object.entries(this.#tabBtns).forEach(([t, btn]) => {
             btn.classList.toggle('active', t === cur);
+        });
+        const isPie = cur === 'pie';
+        this.#pieOptsSection.style.display = isPie ? 'flex' : 'none';
+        this.#pieOptsSection.style.flexDirection = 'column';
+        this.#pieOptsSection.style.gap = '4px';
+        const curDisplay = this.#engine.getPieDisplay();
+        Object.entries(this.#pieDisplayBtns).forEach(([mode, btn]) => {
+            btn.classList.toggle('active', mode === curDisplay);
         });
     }
 
@@ -358,10 +397,11 @@ export class StatisticsView {
 
     // ── pie chart ─────────────────────────────────────────────────────────────
     #renderPie(data, W, H) {
-        const total = data.reduce((s, r) => s + r.value, 0) || 1;
-        const cx    = W * 0.42;
-        const cy    = H / 2 + 10;
-        const rPie  = Math.min(cx - PAD_L, cy - PAD_T, H / 2 - 20);
+        const total   = data.reduce((s, r) => s + r.value, 0) || 1;
+        const cx      = W * 0.42;
+        const cy      = H / 2 + 10;
+        const rPie    = Math.min(cx - PAD_L, cy - PAD_T, H / 2 - 20);
+        const display = this.#engine.getPieDisplay();
 
         let startAngle = -Math.PI / 2;
 
@@ -388,9 +428,22 @@ export class StatisticsView {
             const ly = PAD_T + i * 22;
             this.#svg.appendChild(svgEl('rect', { x: legendX, y: ly, width: 14, height: 14, fill: row.color, rx: 2 }));
             const lbl = svgEl('text', { x: legendX + 18, y: ly + 11, 'font-size': '12', fill: '#333' });
-            const pct = total > 0 ? Math.round((row.value / total) * 100) : 0;
-            lbl.textContent = `${row.label} (${pct}%)`;
+            lbl.textContent = `${row.label} (${this.#pieValueLabel(row.value, total, display)})`;
             this.#svg.appendChild(lbl);
         });
+    }
+
+    #pieValueLabel(value, total, display) {
+        if (display === 'antal') {
+            return parseFloat(value.toFixed(1));
+        }
+        if (display === 'andel') {
+            const iv = Math.round(value);
+            const it = Math.round(total);
+            const g  = gcd(iv, it);
+            return `${iv / g}/${it / g}`;
+        }
+        // procent
+        return `${Math.round((value / total) * 100)}%`;
     }
 }

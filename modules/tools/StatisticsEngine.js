@@ -10,10 +10,11 @@ const DEFAULT_ROWS = [
 const DEFAULT_COLORS = ['#5b80a5','#a85c72','#4f7c75','#dec894','#938db3','#d58b99','#8bb39c','#8db1d1'];
 
 export class StatisticsEngine {
-    #data       = [];
-    #chartType  = 'bar';
-    #title      = 'Mitt diagram';
-    #listeners  = [];
+    #data        = [];
+    #chartType   = 'bar';
+    #title       = 'Mitt diagram';
+    #pieDisplay  = 'procent';   // 'antal' | 'andel' | 'procent'
+    #listeners   = [];
 
     constructor() {
         this.#load();
@@ -23,6 +24,7 @@ export class StatisticsEngine {
     getData()                { return this.#data.map(r => ({ ...r })); }
     getChartType()           { return this.#chartType; }
     getTitle()               { return this.#title; }
+    getPieDisplay()          { return this.#pieDisplay; }
 
     setChartType(type) {
         this.#chartType = type;
@@ -32,6 +34,13 @@ export class StatisticsEngine {
 
     setTitle(t) {
         this.#title = t;
+        this.#save();
+        this.#notify();
+    }
+
+    setPieDisplay(mode) {
+        if (!['antal', 'andel', 'procent'].includes(mode)) return;
+        this.#pieDisplay = mode;
         this.#save();
         this.#notify();
     }
@@ -70,9 +79,10 @@ export class StatisticsEngine {
     #save() {
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify({
-                data:      this.#data,
-                chartType: this.#chartType,
-                title:     this.#title,
+                data:       this.#data,
+                chartType:  this.#chartType,
+                title:      this.#title,
+                pieDisplay: this.#pieDisplay,
             }));
         } catch (_) { /* ignore */ }
     }
@@ -82,9 +92,10 @@ export class StatisticsEngine {
             const raw = localStorage.getItem(STORAGE_KEY);
             if (raw) {
                 const parsed = JSON.parse(raw);
-                this.#data      = parsed.data      || this.#makeDefaults();
-                this.#chartType = parsed.chartType || 'bar';
-                this.#title     = parsed.title     || 'Mitt diagram';
+                this.#data       = parsed.data       || this.#makeDefaults();
+                this.#chartType  = parsed.chartType  || 'bar';
+                this.#title      = parsed.title      || 'Mitt diagram';
+                this.#pieDisplay = parsed.pieDisplay || 'procent';
                 return;
             }
         } catch (_) { /* ignore */ }
