@@ -979,6 +979,15 @@ export class GeometryView {
                     span.textContent = part.text;
                     span.style.color = part.color || '#5b80a5';
                     span.style.fontSize = '30px';
+                    span.style.cursor = 'default';
+                    span.addEventListener('mouseenter', () => {
+                        span.style.color = '#dc2626';
+                        this.#highlightDim(selected.id, part.key, true);
+                    });
+                    span.addEventListener('mouseleave', () => {
+                        span.style.color = part.color || '#5b80a5';
+                        this.#highlightDim(selected.id, part.key, false);
+                    });
                     line.appendChild(span);
                 }
             }
