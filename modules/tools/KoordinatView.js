@@ -163,15 +163,15 @@ export class KoordinatView {
     }
 
     #svgEventToKoord(e) {
-        const rect = this.#svg.getBoundingClientRect();
-        if (!rect.width) return [null, null];
-        const scaleX = SVG_W / rect.width;
-        const scaleY = SVG_H / rect.height;
-        const px = (e.clientX - rect.left) * scaleX;
-        const py = (e.clientY - rect.top) * scaleY;
+        const ctm = this.#svg.getScreenCTM();
+        if (!ctm) return [null, null];
+        const pt = this.#svg.createSVGPoint();
+        pt.x = e.clientX;
+        pt.y = e.clientY;
+        const svgPt = pt.matrixTransform(ctm.inverse());
         const { min, max } = this.#engine.getRange();
-        const kx = svgToKoord(px, min, max);
-        const ky = svgToKoord(SVG_H - py, min, max);
+        const kx = svgToKoord(svgPt.x, min, max);
+        const ky = svgToKoord(SVG_H - svgPt.y, min, max);
         return [kx, ky];
     }
 
