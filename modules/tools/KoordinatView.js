@@ -240,10 +240,8 @@ export class KoordinatView {
             html += `<text x="${SVG_W - PAD + 14}" y="${SVG_H - PAD - 6}" font-size="22" font-weight="bold" fill="#111">x</text>`;
         }
 
-        // Tick marks and numbers
+        // Tick marks and numbers — every integer
         for (let v = min; v <= max; v++) {
-            const isMajor = v % (max - min > 10 ? 5 : 1) === 0 || (max - min) <= 10;
-            if (!isMajor) continue;
             const px = toX(v);
             const py = toY(v);
             const origin = min <= 0 ? 0 : min;
