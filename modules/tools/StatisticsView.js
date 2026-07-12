@@ -413,9 +413,9 @@ export class StatisticsView {
         let startAngle = -Math.PI / 2;
 
         data.forEach(row => {
-            const slice = (row.value / total) * 2 * Math.PI;
+            const slice    = (row.value / total) * 2 * Math.PI;
             const endAngle = startAngle + slice;
-            const large = slice > Math.PI ? 1 : 0;
+            const large    = slice > Math.PI ? 1 : 0;
 
             const x1 = cx + rPie * Math.cos(startAngle);
             const y1 = cy + rPie * Math.sin(startAngle);
@@ -425,6 +425,28 @@ export class StatisticsView {
             const d = `M ${cx} ${cy} L ${x1} ${y1} A ${rPie} ${rPie} 0 ${large} 1 ${x2} ${y2} Z`;
             const path = svgEl('path', { d, fill: row.color, stroke: '#fff', 'stroke-width': 2, class: 'pie-slice' });
             this.#svg.appendChild(path);
+
+            // label inside slice — only if slice is wide enough to fit text
+            if (slice >= 0.25) {
+                const midAngle = startAngle + slice / 2;
+                const labelR   = rPie * 0.62;
+                const lx = cx + labelR * Math.cos(midAngle);
+                const ly = cy + labelR * Math.sin(midAngle);
+                const sliceLbl = svgEl('text', {
+                    x: lx.toFixed(1), y: ly.toFixed(1),
+                    'text-anchor': 'middle',
+                    'dominant-baseline': 'central',
+                    'font-size': Math.max(11, Math.min(15, rPie * 0.18)).toFixed(0),
+                    'font-weight': '700',
+                    fill: '#fff',
+                    stroke: 'rgba(0,0,0,0.35)',
+                    'stroke-width': '3',
+                    'paint-order': 'stroke',
+                    'pointer-events': 'none',
+                });
+                sliceLbl.textContent = this.#pieValueLabel(row.value, total, display);
+                this.#svg.appendChild(sliceLbl);
+            }
 
             startAngle = endAngle;
         });
