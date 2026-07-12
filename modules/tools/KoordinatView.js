@@ -1,8 +1,8 @@
 import { KoordinatEngine } from './KoordinatEngine.js';
 
-const PAD = 52;
-const SVG_W = 600;
-const SVG_H = 600;
+const PAD = 68;
+const SVG_W = 780;
+const SVG_H = 780;
 
 function koordToSvg(v, min, max) {
     const range = max - min;
@@ -71,7 +71,7 @@ export class KoordinatView {
             </aside>
             <div class="flex-1 flex items-center justify-center overflow-hidden bg-soft-bg p-2">
                 <svg id="koord-svg" viewBox="0 0 ${SVG_W} ${SVG_H}"
-                     style="width:100%;height:100%;max-width:${SVG_W}px;max-height:${SVG_H}px;touch-action:none;"
+                     style="width:100%;height:100%;max-width:${SVG_W}px;max-height:${SVG_H}px;touch-action:none;display:block;"
                      xmlns="http://www.w3.org/2000/svg"></svg>
             </div>`;
 
@@ -215,8 +215,8 @@ export class KoordinatView {
                 const isMajor = v % 5 === 0;
                 const px = toX(v);
                 const py = toY(v);
-                html += `<line x1="${px}" y1="${PAD}" x2="${px}" y2="${SVG_H - PAD}" stroke="${isMajor ? '#b0b8c8' : '#dde3ec'}" stroke-width="${isMajor ? 1.2 : 0.7}"/>`;
-                html += `<line x1="${PAD}" y1="${py}" x2="${SVG_W - PAD}" y2="${py}" stroke="${isMajor ? '#b0b8c8' : '#dde3ec'}" stroke-width="${isMajor ? 1.2 : 0.7}"/>`;
+                html += `<line x1="${px}" y1="${PAD}" x2="${px}" y2="${SVG_H - PAD}" stroke="${isMajor ? '#9aaabf' : '#dde3ec'}" stroke-width="${isMajor ? 1.5 : 0.8}"/>`;
+                html += `<line x1="${PAD}" y1="${py}" x2="${SVG_W - PAD}" y2="${py}" stroke="${isMajor ? '#9aaabf' : '#dde3ec'}" stroke-width="${isMajor ? 1.5 : 0.8}"/>`;
             }
         }
 
@@ -229,15 +229,15 @@ export class KoordinatView {
             html += `<line x1="${PAD - 10}" y1="${ay}" x2="${SVG_W - PAD + 10}" y2="${ay}" stroke="#333" stroke-width="2.2"/>`;
             html += `<polygon points="${ax},${PAD - 20} ${ax - 6},${PAD - 6} ${ax + 6},${PAD - 6}" fill="#333"/>`;
             html += `<polygon points="${SVG_W - PAD + 20},${ay} ${SVG_W - PAD + 6},${ay - 6} ${SVG_W - PAD + 6},${ay + 6}" fill="#333"/>`;
-            html += `<text x="${ax + 10}" y="${PAD - 14}" font-size="15" font-weight="bold" fill="#333">y</text>`;
-            html += `<text x="${SVG_W - PAD + 14}" y="${ay - 6}" font-size="15" font-weight="bold" fill="#333">x</text>`;
+            html += `<text x="${ax + 10}" y="${PAD - 14}" font-size="22" font-weight="bold" fill="#111">y</text>`;
+            html += `<text x="${SVG_W - PAD + 14}" y="${ay - 6}" font-size="22" font-weight="bold" fill="#111">x</text>`;
         } else {
             html += `<line x1="${PAD}" y1="${PAD - 10}" x2="${PAD}" y2="${SVG_H - PAD}" stroke="#333" stroke-width="2.2"/>`;
             html += `<line x1="${PAD}" y1="${SVG_H - PAD}" x2="${SVG_W - PAD + 10}" y2="${SVG_H - PAD}" stroke="#333" stroke-width="2.2"/>`;
             html += `<polygon points="${PAD},${PAD - 20} ${PAD - 6},${PAD - 6} ${PAD + 6},${PAD - 6}" fill="#333"/>`;
             html += `<polygon points="${SVG_W - PAD + 20},${SVG_H - PAD} ${SVG_W - PAD + 6},${SVG_H - PAD - 6} ${SVG_W - PAD + 6},${SVG_H - PAD + 6}" fill="#333"/>`;
-            html += `<text x="${PAD + 10}" y="${PAD - 14}" font-size="15" font-weight="bold" fill="#333">y</text>`;
-            html += `<text x="${SVG_W - PAD + 14}" y="${SVG_H - PAD - 6}" font-size="15" font-weight="bold" fill="#333">x</text>`;
+            html += `<text x="${PAD + 10}" y="${PAD - 14}" font-size="22" font-weight="bold" fill="#111">y</text>`;
+            html += `<text x="${SVG_W - PAD + 14}" y="${SVG_H - PAD - 6}" font-size="22" font-weight="bold" fill="#111">x</text>`;
         }
 
         // Tick marks and numbers
@@ -250,12 +250,12 @@ export class KoordinatView {
             const ax = toX(origin);
             const ay = toY(origin);
             if (v !== origin) {
-                html += `<line x1="${px}" y1="${ay - 5}" x2="${px}" y2="${ay + 5}" stroke="#333" stroke-width="1.5"/>`;
-                html += `<text x="${px}" y="${ay + 18}" text-anchor="middle" font-size="11" fill="#555">${v}</text>`;
-                html += `<line x1="${ax - 5}" y1="${py}" x2="${ax + 5}" y2="${py}" stroke="#333" stroke-width="1.5"/>`;
-                html += `<text x="${ax - 14}" y="${py + 4}" text-anchor="middle" font-size="11" fill="#555">${v}</text>`;
+                html += `<line x1="${px}" y1="${ay - 7}" x2="${px}" y2="${ay + 7}" stroke="#222" stroke-width="2"/>`;
+                html += `<text x="${px}" y="${ay + 24}" text-anchor="middle" font-size="15" font-weight="600" fill="#1a1a1a">${v}</text>`;
+                html += `<line x1="${ax - 7}" y1="${py}" x2="${ax + 7}" y2="${py}" stroke="#222" stroke-width="2"/>`;
+                html += `<text x="${ax - 16}" y="${py + 5}" text-anchor="middle" font-size="15" font-weight="600" fill="#1a1a1a">${v}</text>`;
             } else if (min < 0) {
-                html += `<text x="${px - 10}" y="${py + 16}" text-anchor="middle" font-size="11" fill="#555">0</text>`;
+                html += `<text x="${px - 12}" y="${py + 20}" text-anchor="middle" font-size="15" font-weight="600" fill="#1a1a1a">0</text>`;
             }
         }
 
@@ -265,7 +265,7 @@ export class KoordinatView {
             const py = toY(pt.y);
             html += `<circle cx="${px}" cy="${py}" r="8" fill="${pt.color}" stroke="white" stroke-width="2.5" style="cursor:grab;"/>`;
             if (showLabels) {
-                html += `<text x="${px + 12}" y="${py - 8}" font-size="14" font-weight="bold" fill="${pt.color}">${pt.label}</text>`;
+                html += `<text x="${px + 13}" y="${py - 10}" font-size="18" font-weight="bold" fill="${pt.color}">${pt.label}</text>`;
             }
         }
 
