@@ -3,6 +3,12 @@ const PAD_L = 55, PAD_R = 20, PAD_T = 55, PAD_B = 55;
 
 function gcd(a, b) { return b === 0 ? a : gcd(b, a % b); }
 
+function niceYMax(rawMax, steps) {
+    if (rawMax <= 0) return steps;
+    const step = Math.ceil(rawMax / steps);
+    return step * steps;
+}
+
 function svgEl(tag, attrs = {}) {
     const el = document.createElementNS(NS, tag);
     Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
@@ -244,7 +250,8 @@ export class StatisticsView {
     #renderBar(data, W, H) {
         const chartW  = W - PAD_L - PAD_R;
         const chartH  = H - PAD_T - PAD_B;
-        const yMax    = Math.max(...data.map(r => r.value), 1);
+        const ySteps  = 5;
+        const yMax    = niceYMax(Math.max(...data.map(r => r.value), 1), ySteps);
         const barW    = Math.floor(chartW / data.length * 0.6);
         const gap     = chartW / data.length;
 
@@ -253,9 +260,8 @@ export class StatisticsView {
         this.#svg.appendChild(svgEl('line', { x1: PAD_L, y1: PAD_T + chartH, x2: PAD_L + chartW, y2: PAD_T + chartH, stroke:'#555', 'stroke-width':1.5 }));
 
         // y-axis ticks
-        const ySteps = 5;
         for (let i = 0; i <= ySteps; i++) {
-            const val = Math.round((yMax * i) / ySteps);
+            const val = (yMax / ySteps) * i;
             const gy  = PAD_T + chartH - (i / ySteps) * chartH;
             this.#svg.appendChild(svgEl('line', { x1: PAD_L - 4, y1: gy, x2: PAD_L + chartW, y2: gy, stroke:'#ddd', 'stroke-width':1 }));
             const tick = svgEl('text', { x: PAD_L - 8, y: gy + 4, 'text-anchor':'end', 'font-size':'10', fill:'#555' });
@@ -316,7 +322,8 @@ export class StatisticsView {
     #renderLine(data, W, H) {
         const chartW  = W - PAD_L - PAD_R;
         const chartH  = H - PAD_T - PAD_B;
-        const yMax    = Math.max(...data.map(r => r.value), 1);
+        const ySteps  = 5;
+        const yMax    = niceYMax(Math.max(...data.map(r => r.value), 1), ySteps);
         const step    = chartW / Math.max(data.length - 1, 1);
 
         // axes
@@ -324,9 +331,9 @@ export class StatisticsView {
         this.#svg.appendChild(svgEl('line', { x1: PAD_L, y1: PAD_T + chartH, x2: PAD_L + chartW, y2: PAD_T + chartH, stroke:'#555', 'stroke-width':1.5 }));
 
         // y-axis ticks
-        for (let i = 0; i <= 5; i++) {
-            const val = Math.round((yMax * i) / 5);
-            const gy  = PAD_T + chartH - (i / 5) * chartH;
+        for (let i = 0; i <= ySteps; i++) {
+            const val = (yMax / ySteps) * i;
+            const gy  = PAD_T + chartH - (i / ySteps) * chartH;
             this.#svg.appendChild(svgEl('line', { x1: PAD_L - 4, y1: gy, x2: PAD_L + chartW, y2: gy, stroke:'#ddd', 'stroke-width':1 }));
             const tick = svgEl('text', { x: PAD_L - 8, y: gy + 4, 'text-anchor':'end', 'font-size':'10', fill:'#555' });
             tick.textContent = val;
