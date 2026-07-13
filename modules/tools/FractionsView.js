@@ -146,6 +146,12 @@ export class FractionsView {
         document.addEventListener('pointercancel', this.#boundOnUp);
 
         this.#unsubscribe = this.#engine.subscribe(opts => this.#onOptionsChange(opts));
+
+        // Restore pieces that existed before unmount
+        for (const piece of this.#engine.getPieces()) {
+            if (piece.type === 'circle') this.#renderCirclePiece(piece);
+            else                          this.#renderLoosePiece(piece);
+        }
         return this.#root;
     }
 
@@ -285,17 +291,24 @@ export class FractionsView {
     // ─── Fraction piece creation ──────────────────────────────────────────────
 
     #addFractionCircle(d, color) {
-        const ws  = this.#workspace;
-        const x   = ws.clientWidth  / 2 - FRAC_SVG * FRAC_BOARD_SCALE / 2 + (Math.random() * 80 - 40);
-        const y   = ws.clientHeight - FRAC_SVG * FRAC_BOARD_SCALE - 24      + (Math.random() * 30 - 15);
+        const ws    = this.#workspace;
+        const x     = ws.clientWidth  / 2 - FRAC_SVG * FRAC_BOARD_SCALE / 2 + (Math.random() * 80 - 40);
+        const y     = ws.clientHeight - FRAC_SVG * FRAC_BOARD_SCALE - 24      + (Math.random() * 30 - 15);
+        const scale = FRAC_BOARD_SCALE;
+        const n     = d;
+        const id    = this.#engine.addPiece({ type: 'circle', d, color, n, x, y, scale });
+        this.#renderCirclePiece({ id, d, color, n, x, y, scale });
+    }
 
+    #renderCirclePiece({ id, d, color, n, x, y, scale }) {
         const wrapper = this.#makeFracElement(x, y);
-        wrapper.dataset.scale = FRAC_BOARD_SCALE;
-        wrapper.dataset.d     = d;
-        wrapper.dataset.color = color;
-        wrapper.dataset.n     = String(d);
-        wrapper.innerHTML     = buildCircleSVG(d, color, this.#showDecimal, this.#showPercent, d);
-        ws.appendChild(wrapper);
+        wrapper.dataset.scale   = scale;
+        wrapper.dataset.d       = d;
+        wrapper.dataset.color   = color;
+        wrapper.dataset.n       = String(n);
+        wrapper.dataset.pieceId = id;
+        wrapper.innerHTML       = buildCircleSVG(d, color, this.#showDecimal, this.#showPercent, n);
+        this.#workspace.appendChild(wrapper);
         this.#applyFracTransform(wrapper);
         this.#addMoveHandle(wrapper);
         if (d > 1) wrapper.appendChild(this.#makeNumeratorStepper(wrapper, d));
@@ -304,7 +317,6 @@ export class FractionsView {
         if (d === 1) {
             this.#addFracDragListener(wrapper);
         } else {
-            // Drag on non-slice area moves the whole circle
             wrapper.addEventListener('pointerdown', (e) => {
                 if (e.button !== 0) return;
                 if (e.target.classList.contains('frac-slice')) return;
@@ -354,6 +366,7 @@ export class FractionsView {
 
         const rebuild = n => {
             wrapper.dataset.n = String(n);
+            this.#engine.updatePiece(parseInt(wrapper.dataset.pieceId, 10), { n });
             const color = wrapper.dataset.color;
             const oldSvg = wrapper.querySelector('svg');
             const tmp = document.createElement('div');
@@ -457,7 +470,8 @@ export class FractionsView {
 
     #fracOnMove(e) {
         if (!this.#fracDrag || this.#fracDrag.pointerId !== e.pointerId) return;
-        const drag = this.#fracDrag;
+        const drag    = this.#fracDrag;
+        const pieceId = parseInt(drag.el.dataset.pieceId, 10);
         if (drag.mode === 'resize') {
             const dx    = e.clientX - drag.sx;
             const dy    = e.clientY - drag.sy;
@@ -465,12 +479,14 @@ export class FractionsView {
             const ns    = Math.max(0.4, Math.min(4, drag.startScale + delta / FRAC_SVG));
             drag.el.dataset.scale = ns;
             this.#applyFracTransform(drag.el);
+            if (!isNaN(pieceId)) this.#engine.updatePiece(pieceId, { scale: ns });
         } else {
             const nx = drag.ox + (e.clientX - drag.sx);
             const ny = drag.oy + (e.clientY - drag.sy);
             drag.el.dataset.x = nx;
             drag.el.dataset.y = ny;
             this.#applyFracTransform(drag.el);
+            if (!isNaN(pieceId)) this.#engine.updatePiece(pieceId, { x: nx, y: ny });
         }
     }
 
@@ -526,17 +542,22 @@ export class FractionsView {
         const ws     = this.#workspace;
         const wsRect = ws.getBoundingClientRect();
         const s      = scale || 1;
-        const nx     = clientX - wsRect.left - FRAC_SVG * s / 2;
-        const ny     = clientY - wsRect.top  - FRAC_SVG * s / 2;
+        const x      = clientX - wsRect.left - FRAC_SVG * s / 2;
+        const y      = clientY - wsRect.top  - FRAC_SVG * s / 2;
+        const id     = this.#engine.addPiece({ type: 'loose', looseD: d, looseSlice: sliceIndex, looseColor: color, x, y, scale: s });
+        return this.#renderLoosePiece({ id, looseD: d, looseSlice: sliceIndex, looseColor: color, x, y, scale: s });
+    }
 
-        const el = this.#makeFracElement(nx, ny);
-        el.dataset.scale      = s;
+    #renderLoosePiece({ id, looseD, looseSlice, looseColor, x, y, scale }) {
+        const el = this.#makeFracElement(x, y);
+        el.dataset.scale      = scale;
         el.dataset.isLoose    = 'true';
-        el.dataset.looseD     = d;
-        el.dataset.looseSlice = sliceIndex;
-        el.dataset.looseColor = color;
-        el.innerHTML          = buildLooseSliceSVG(d, sliceIndex, color, this.#showDecimal, this.#showPercent);
-        ws.appendChild(el);
+        el.dataset.looseD     = looseD;
+        el.dataset.looseSlice = looseSlice;
+        el.dataset.looseColor = looseColor;
+        el.dataset.pieceId    = id;
+        el.innerHTML          = buildLooseSliceSVG(looseD, looseSlice, looseColor, this.#showDecimal, this.#showPercent);
+        this.#workspace.appendChild(el);
         this.#applyFracTransform(el);
         this.#addFracDragListener(el);
         this.#addResizeHandle(el);
@@ -582,6 +603,7 @@ export class FractionsView {
 
     #clearWorkspace() {
         if (!this.#workspace) return;
+        this.#engine.clearPieces();
         this.#workspace.querySelectorAll('.frac-piece').forEach(el => el.remove());
         this.#fracDrag = null;
     }

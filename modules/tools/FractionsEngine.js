@@ -1,6 +1,9 @@
+let _nextPieceId = 1;
+
 export class FractionsEngine {
     #showDecimal = false;
     #showPercent = false;
+    #pieces      = [];
     #listeners   = new Set();
 
     setShowDecimal(bool) {
@@ -20,10 +23,29 @@ export class FractionsEngine {
         });
     }
 
-    /**
-     * Subscribe to options changes. Listener is called immediately.
-     * @returns {() => void} unsubscribe function
-     */
+    // ── Piece persistence ─────────────────────────────────────────────────────
+
+    addPiece(data) {
+        const piece = { id: _nextPieceId++, ...data };
+        this.#pieces.push(piece);
+        return piece.id;
+    }
+
+    updatePiece(id, partial) {
+        const piece = this.#pieces.find(p => p.id === id);
+        if (piece) Object.assign(piece, partial);
+    }
+
+    clearPieces() {
+        this.#pieces = [];
+    }
+
+    getPieces() {
+        return this.#pieces.map(p => ({ ...p }));
+    }
+
+    // ── Subscription ──────────────────────────────────────────────────────────
+
     subscribe(listener) {
         this.#listeners.add(listener);
         listener(this.getOptions());
