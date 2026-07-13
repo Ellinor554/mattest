@@ -61,6 +61,7 @@ export class GeometryView {
     #lastDimsForShape = new Map();
     #presentationEl = null;
     #angleEls = [];
+    #presHighlight = null;  // { shapeId, dimKey } — tracks active hover in presentation overlay
 
     constructor(engine = new GeometryEngine()) { this.#engine = engine; }
     get engine() { return this.#engine; }
@@ -956,6 +957,11 @@ export class GeometryView {
                 '<em style="color:#8c8d92;font-size:16px;">Inga formler tillgängliga.</em>';
             return;
         }
+        // Clear any hover-highlight that was active before this re-render
+        if (this.#presHighlight) {
+            this.#highlightDim(this.#presHighlight.shapeId, this.#presHighlight.dimKey, false);
+            this.#presHighlight = null;
+        }
         content.innerHTML = '';
         for (const row of spec.rows) {
             const rowEl = document.createElement('div');
@@ -982,10 +988,12 @@ export class GeometryView {
                     span.style.cursor = 'default';
                     span.addEventListener('mouseenter', () => {
                         span.style.color = '#dc2626';
+                        this.#presHighlight = { shapeId: selected.id, dimKey: part.key };
                         this.#highlightDim(selected.id, part.key, true);
                     });
                     span.addEventListener('mouseleave', () => {
                         span.style.color = part.color || '#5b80a5';
+                        this.#presHighlight = null;
                         this.#highlightDim(selected.id, part.key, false);
                     });
                     line.appendChild(span);

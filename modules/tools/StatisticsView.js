@@ -20,6 +20,7 @@ export class StatisticsView {
     #root;
     #svg;
     #unsub;
+    #activeDrag = null;  // { rowIdx, lastY, lastVal }
 
     // sidebar refs
     #titleInput;
@@ -134,6 +135,9 @@ export class StatisticsView {
 
         this.#svg = document.createElementNS(NS, 'svg');
         this.#svg.style.cssText = 'width:100%;height:100%;display:block;';
+        this.#svg.addEventListener('pointermove',   e => this.#onChartMove(e));
+        this.#svg.addEventListener('pointerup',     e => this.#onChartUp(e));
+        this.#svg.addEventListener('pointercancel', e => this.#onChartUp(e));
         chartWrap.appendChild(this.#svg);
 
         section.appendChild(sidebar);
@@ -293,28 +297,16 @@ export class StatisticsView {
             this.#svg.appendChild(xlbl);
 
             // drag to change value
-            this.#makeDraggableBar(rect, i, bx, by, bh, barW, chartH, yMax);
+            this.#makeDraggableBar(rect, i);
         });
     }
 
-    #makeDraggableBar(rect, rowIdx, bx, by, bh, barW, chartH, yMax) {
-        let startY, startVal;
+    #makeDraggableBar(rect, rowIdx) {
         rect.addEventListener('pointerdown', e => {
             e.preventDefault();
-            rect.setPointerCapture(e.pointerId);
-            startY   = e.clientY;
-            startVal = this.#engine.getData()[rowIdx].value;
-        });
-        rect.addEventListener('pointermove', e => {
-            if (!rect.hasPointerCapture(e.pointerId)) return;
-            const svgRect = this.#svg.getBoundingClientRect();
-            const scaleY  = (this.#svg.viewBox.baseVal.height || 350) / svgRect.height;
-            const dy      = (e.clientY - startY) * scaleY;
-            const newVal  = Math.max(0, parseFloat((startVal - (dy / chartH) * yMax).toFixed(1)));
-            this.#engine.setRow(rowIdx, { value: newVal });
-        });
-        rect.addEventListener('pointerup', e => {
-            if (rect.hasPointerCapture(e.pointerId)) rect.releasePointerCapture(e.pointerId);
+            this.#svg.setPointerCapture(e.pointerId);
+            const data = this.#engine.getData();
+            this.#activeDrag = { rowIdx, lastY: e.clientY, lastVal: data[rowIdx]?.value ?? 0 };
         });
     }
 
@@ -377,29 +369,40 @@ export class StatisticsView {
             this.#svg.appendChild(xlbl);
 
             // drag
-            this.#makeDraggableDot(dot, i, chartH, yMax);
+            this.#makeDraggableDot(dot, i);
         });
     }
 
-    #makeDraggableDot(dot, rowIdx, chartH, yMax) {
-        let startY, startVal;
+    #makeDraggableDot(dot, rowIdx) {
         dot.addEventListener('pointerdown', e => {
             e.preventDefault();
-            dot.setPointerCapture(e.pointerId);
-            startY   = e.clientY;
-            startVal = this.#engine.getData()[rowIdx].value;
+            this.#svg.setPointerCapture(e.pointerId);
+            const data = this.#engine.getData();
+            this.#activeDrag = { rowIdx, lastY: e.clientY, lastVal: data[rowIdx]?.value ?? 0 };
         });
-        dot.addEventListener('pointermove', e => {
-            if (!dot.hasPointerCapture(e.pointerId)) return;
-            const svgRect = this.#svg.getBoundingClientRect();
-            const scaleY  = (this.#svg.viewBox.baseVal.height || 350) / svgRect.height;
-            const dy      = (e.clientY - startY) * scaleY;
-            const newVal  = Math.max(0, parseFloat((startVal - (dy / chartH) * yMax).toFixed(1)));
-            this.#engine.setRow(rowIdx, { value: newVal });
-        });
-        dot.addEventListener('pointerup', e => {
-            if (dot.hasPointerCapture(e.pointerId)) dot.releasePointerCapture(e.pointerId);
-        });
+    }
+
+    #onChartMove(e) {
+        if (!this.#activeDrag || !this.#svg.hasPointerCapture(e.pointerId)) return;
+        const { rowIdx } = this.#activeDrag;
+        const data    = this.#engine.getData();
+        if (rowIdx >= data.length) return;
+        const svgH    = this.#svg.viewBox.baseVal.height || 350;
+        const chartH  = svgH - PAD_T - PAD_B;
+        const yMax    = niceYMax(Math.max(...data.map(r => r.value), 1), 5);
+        const svgRect = this.#svg.getBoundingClientRect();
+        const scaleY  = svgH / svgRect.height;
+        const dy      = (e.clientY - this.#activeDrag.lastY) * scaleY;
+        const newVal  = Math.max(0, parseFloat((this.#activeDrag.lastVal - (dy / chartH) * yMax).toFixed(1)));
+        this.#activeDrag.lastY   = e.clientY;
+        this.#activeDrag.lastVal = newVal;
+        this.#engine.setRow(rowIdx, { value: newVal });
+    }
+
+    #onChartUp(e) {
+        if (!this.#activeDrag) return;
+        this.#activeDrag = null;
+        try { this.#svg.releasePointerCapture(e.pointerId); } catch {}
     }
 
     // ── pie chart ─────────────────────────────────────────────────────────────
