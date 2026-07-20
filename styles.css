@@ -358,7 +358,6 @@ body { font-family: 'Nunito', sans-serif; touch-action: none; overflow: hidden; 
 .vol-add-btn:active {
     transform: scale(0.97);
 }
-
 /* ═══════════════════════════════════════════════
    Decimaltal – Decimal Numbers Visualisation
    ═══════════════════════════════════════════════ */

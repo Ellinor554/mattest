@@ -254,21 +254,22 @@ export class VolumeView {
 
     #buildMainArea() {
         const main = document.createElement('div');
-        main.className = 'flex-1 flex items-center justify-center bg-soft-bg overflow-auto p-8';
+        main.className = 'flex-1 flex items-center justify-center bg-soft-bg overflow-auto p-8 relative';
 
-        const flexWrap = document.createElement('div');
-        flexWrap.className = 'flex items-end gap-8 flex-wrap justify-center';
-
-        // Beakers row
+        // Beakers row centred in the main area
         const beakersRow = document.createElement('div');
         beakersRow.className = 'flex items-end gap-6 flex-wrap justify-center';
         this.#beakersRow = beakersRow;
-        flexWrap.appendChild(beakersRow);
+        main.appendChild(beakersRow);
 
-        // Info panel
-        flexWrap.appendChild(this.#buildInfoPanel());
+        // Enhetsrelationer panel – anchored to top-right corner of main area
+        const infoPanel = this.#buildInfoPanel();
+        infoPanel.style.position = 'absolute';
+        infoPanel.style.top      = '1rem';
+        infoPanel.style.right    = '1rem';
+        infoPanel.style.maxWidth = '240px';
+        main.appendChild(infoPanel);
 
-        main.appendChild(flexWrap);
         return main;
     }
 
@@ -422,4 +423,5 @@ export class VolumeView {
             this.#enhetsToggle.setAttribute('aria-expanded', String(!isHidden));
         }
     }
+
 }
