@@ -267,7 +267,7 @@ export class VolumeView {
         infoPanel.style.position = 'absolute';
         infoPanel.style.top      = '1rem';
         infoPanel.style.right    = '1rem';
-        infoPanel.style.maxWidth = '240px';
+        infoPanel.style.maxWidth = '310px';
         main.appendChild(infoPanel);
 
         return main;
@@ -275,7 +275,7 @@ export class VolumeView {
 
     #buildInfoPanel() {
         const panel = document.createElement('div');
-        panel.className = 'bg-soft-surface rounded-2xl shadow-sm border border-soft-border p-6 max-w-xs';
+        panel.className = 'bg-soft-surface rounded-2xl shadow-sm border border-soft-border p-7 max-w-xs';
 
         const titleRow = document.createElement('h4');
         titleRow.className = 'font-bold text-soft-text mb-3 flex items-center gap-2';
@@ -301,7 +301,7 @@ export class VolumeView {
         panel.appendChild(titleRow);
 
         const body = document.createElement('div');
-        body.className = 'text-sm text-soft-muted space-y-1 leading-relaxed';
+        body.className = 'text-sm text-soft-text space-y-1 leading-relaxed';
 
         const unitRows = [
             ['L',  '= 10 dl = 100 cl = 1\u00a0000 ml'],
