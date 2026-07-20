@@ -5,6 +5,75 @@ const SCALE_W       = 68;  // px – scale column width
 const BEAKER_BORDER_B = 3; // px – bottom border thickness (border-box)
 const BEAKER_INNER_H  = BEAKER_H - BEAKER_BORDER_B; // usable liquid height
 const MAX_ML_PER_BEAKER = 1000; // 1 litre per beaker
+const DL_BEAKER_W       = 240;  // px – dl beaker body width (wider than L)
+const DL_BEAKER_H       = 200;  // px – dl beaker body height (shorter than L)
+const DL_BEAKER_INNER_H = DL_BEAKER_H - BEAKER_BORDER_B;
+const MAX_ML_PER_DL     = 100;  // 1 dl = 100 ml per dl beaker
+
+/** Format ml as Swedish dl string, e.g. 50 → "0,5 dl". */
+function formatDl(ml) {
+    const dl = ml / 100;
+    return dl.toLocaleString('sv-SE', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' dl';
+}
+
+/** Scale column for the dl beaker (same height as L, labels 0.0–1.0 dl). */
+function buildDlScaleEl() {
+    const wrap = document.createElement('div');
+    wrap.className = 'relative shrink-0';
+    wrap.style.cssText = `width:${SCALE_W}px; height:${DL_BEAKER_H}px;`;
+    const inner = document.createElement('div');
+    inner.className = 'absolute inset-0';
+    for (let i = 0; i <= 10; i++) {
+        const dl    = (10 - i) / 10;
+        const topPx = Math.round((i / 10) * DL_BEAKER_INNER_H);
+        const lineW = dl % 0.5 === 0 ? 14 : 8;
+        const mark = document.createElement('div');
+        mark.className = 'vol-scale-mark';
+        mark.style.cssText = `top:${topPx}px; right:0; left:0; justify-content:flex-end;`;
+        const labelSpan = document.createElement('span');
+        labelSpan.className = 'vol-scale-label';
+        labelSpan.style.cssText = 'min-width:36px; text-align:right; color:#4f7c75;';
+        labelSpan.textContent = dl.toFixed(1);
+        const lineSpan = document.createElement('span');
+        lineSpan.className = 'vol-scale-line';
+        lineSpan.style.cssText = `width:${lineW}px; background:rgba(79,124,117,0.5);`;
+        mark.appendChild(labelSpan);
+        mark.appendChild(lineSpan);
+        inner.appendChild(mark);
+    }
+    wrap.appendChild(inner);
+    return wrap;
+}
+
+/** Build a single dl beaker assembly (green). Returns { wrapper, outer, liquid, surfaceLabel }. */
+function buildDlBeakerAssembly(fillPct, labelText, showLabel) {
+    const fillPx      = (fillPct / 100) * DL_BEAKER_INNER_H;
+    const labelBottom = Math.max(fillPx + 4, 4);
+    const wrapper = document.createElement('div');
+    wrapper.className = 'relative flex items-end gap-0';
+    wrapper.appendChild(buildDlScaleEl());
+    const bodyWrap = document.createElement('div');
+    bodyWrap.className = 'relative';
+    bodyWrap.style.flexShrink = '0';
+    const rim = document.createElement('div');
+    rim.style.cssText = `width:${DL_BEAKER_W}px; height:6px; border-left:3px solid rgba(79,124,117,0.55); border-right:3px solid rgba(79,124,117,0.55); border-top:3px solid rgba(79,124,117,0.55); border-radius:4px 4px 0 0; background:transparent;`;
+    const outer = document.createElement('div');
+    outer.className = 'vol-dl-beaker-outer';
+    const liquid = document.createElement('div');
+    liquid.className = 'vol-dl-liquid';
+    liquid.style.height = fillPct + '%';
+    const surfaceLabel = document.createElement('div');
+    surfaceLabel.className = 'vol-dl-surface-label';
+    surfaceLabel.style.bottom  = labelBottom + 'px';
+    surfaceLabel.style.display = showLabel ? 'block' : 'none';
+    surfaceLabel.textContent   = labelText;
+    outer.appendChild(liquid);
+    outer.appendChild(surfaceLabel);
+    bodyWrap.appendChild(rim);
+    bodyWrap.appendChild(outer);
+    wrapper.appendChild(bodyWrap);
+    return { wrapper, outer, liquid, surfaceLabel };
+}
 
 /** Format ml as a Swedish decimal string in litres, e.g. 1200 → "1,2 L". */
 function formatLiters(ml) {
@@ -106,8 +175,13 @@ export class VolumeView {
     #enhetsIcon    = null;
     #enhetsToggle  = null;
 
+    // Container mode: 'L' | 'dl' | 'both'
+    #containerMode  = 'L';
+    #modeBtns       = null;
+
     // Beaker refs for in-place updates
-    #beakerNodes   = []; // [{ outer, liquid, surfaceLabel }]
+    #lBeakerNodes  = [];
+    #dlBeakerNodes = [];
 
     #unsubscribe   = null;
 
@@ -143,6 +217,29 @@ export class VolumeView {
     #buildSidebar() {
         const sidebar = document.createElement('div');
         sidebar.className = 'w-64 bg-soft-surface shadow-md z-10 p-5 flex flex-col gap-3 overflow-y-auto border-r border-soft-border shrink-0';
+
+        // Container mode selector
+        const modeHeading = document.createElement('h3');
+        modeHeading.className = 'font-bold text-soft-text text-sm uppercase tracking-wider text-soft-muted';
+        modeHeading.textContent = 'Visa behållare';
+        sidebar.appendChild(modeHeading);
+
+        const modeRow = document.createElement('div');
+        modeRow.className = 'flex gap-1';
+        this.#modeBtns = modeRow;
+
+        for (const m of [{ key: 'L', label: 'L' }, { key: 'both', label: 'L + dl' }, { key: 'dl', label: 'dl' }]) {
+            const btn = document.createElement('button');
+            btn.dataset.mode = m.key;
+            btn.textContent  = m.label;
+            btn.className    = m.key === 'L'
+                ? 'flex-1 py-1.5 rounded-lg text-xs font-bold bg-soft-blue text-white border border-soft-blue transition-all'
+                : 'flex-1 py-1.5 rounded-lg text-xs font-bold bg-soft-bg text-soft-muted border border-soft-border transition-all hover:border-soft-blue';
+            btn.addEventListener('click', () => this.#setContainerMode(m.key));
+            modeRow.appendChild(btn);
+        }
+        sidebar.appendChild(modeRow);
+        sidebar.appendChild(this.#hr());
 
         // Heading
         const heading = document.createElement('h3');
@@ -366,33 +463,35 @@ export class VolumeView {
     }
 
     #renderBeakers(totalMl) {
-        const row = this.#beakersRow;
+        if (this.#containerMode === 'L')    return this.#renderLSection(totalMl);
+        if (this.#containerMode === 'dl')   return this.#renderDlSection(totalMl);
+        this.#renderBothMode(totalMl);
+    }
+
+    #renderLSection(totalMl) {
+        const row   = this.#beakersRow;
         if (!row) return;
+        const fullB = Math.floor(totalMl / MAX_ML_PER_BEAKER);
+        const rem   = totalMl % MAX_ML_PER_BEAKER;
+        const total = Math.max(1, fullB + (rem > 0 ? 1 : 0));
 
-        const fullBeakers  = Math.floor(totalMl / MAX_ML_PER_BEAKER);
-        const remainder    = totalMl % MAX_ML_PER_BEAKER;
-        const totalBeakers = Math.max(1, fullBeakers + (remainder > 0 ? 1 : 0));
-
-        if (this.#beakerNodes.length !== totalBeakers) {
-            // Rebuild all beakers
+        if (this.#lBeakerNodes.length !== total) {
             row.innerHTML = '';
-            this.#beakerNodes = [];
-
-            for (let i = 0; i < totalBeakers; i++) {
-                const ml  = this.#beakerMl(totalMl, i);
+            this.#lBeakerNodes  = [];
+            this.#dlBeakerNodes = [];
+            for (let i = 0; i < total; i++) {
+                const ml  = Math.min(MAX_ML_PER_BEAKER, Math.max(0, totalMl - i * MAX_ML_PER_BEAKER));
                 const pct = (ml / MAX_ML_PER_BEAKER) * 100;
                 const { wrapper, liquid, surfaceLabel } = buildBeakerAssembly(pct, formatLiters(ml), ml > 0);
                 row.appendChild(wrapper);
-                this.#beakerNodes.push({ liquid, surfaceLabel });
+                this.#lBeakerNodes.push({ liquid, surfaceLabel });
             }
         } else {
-            // Update only the last beaker in-place (keeps CSS transition)
-            const last  = this.#beakerNodes[totalBeakers - 1];
-            const ml    = this.#beakerMl(totalMl, totalBeakers - 1);
-            const pct   = (ml / MAX_ML_PER_BEAKER) * 100;
+            const last   = this.#lBeakerNodes[total - 1];
+            const ml     = Math.min(MAX_ML_PER_BEAKER, Math.max(0, totalMl - (total - 1) * MAX_ML_PER_BEAKER));
+            const pct    = (ml / MAX_ML_PER_BEAKER) * 100;
             const fillPx = (pct / 100) * BEAKER_INNER_H;
-
-            if (last.liquid)       last.liquid.style.height   = pct + '%';
+            if (last.liquid) last.liquid.style.height = pct + '%';
             if (last.surfaceLabel) {
                 last.surfaceLabel.textContent  = formatLiters(ml);
                 last.surfaceLabel.style.bottom = Math.max(fillPx + 4, 4) + 'px';
@@ -401,9 +500,125 @@ export class VolumeView {
         }
     }
 
-    /** ml contained in beaker at index i. */
-    #beakerMl(totalMl, i) {
-        return Math.min(MAX_ML_PER_BEAKER, Math.max(0, totalMl - i * MAX_ML_PER_BEAKER));
+    #renderDlSection(totalMl) {
+        const row   = this.#beakersRow;
+        if (!row) return;
+        const fullB = Math.floor(totalMl / MAX_ML_PER_DL);
+        const rem   = totalMl % MAX_ML_PER_DL;
+        const total = Math.max(1, fullB + (rem > 0 ? 1 : 0));
+
+        if (this.#dlBeakerNodes.length !== total) {
+            row.innerHTML = '';
+            this.#dlBeakerNodes = [];
+            this.#lBeakerNodes  = [];
+            for (let i = 0; i < total; i++) {
+                const ml  = Math.min(MAX_ML_PER_DL, Math.max(0, totalMl - i * MAX_ML_PER_DL));
+                const pct = (ml / MAX_ML_PER_DL) * 100;
+                const { wrapper, liquid, surfaceLabel } = buildDlBeakerAssembly(pct, formatDl(ml), ml > 0);
+                row.appendChild(wrapper);
+                this.#dlBeakerNodes.push({ liquid, surfaceLabel });
+            }
+        } else {
+            const last   = this.#dlBeakerNodes[total - 1];
+            const ml     = Math.min(MAX_ML_PER_DL, Math.max(0, totalMl - (total - 1) * MAX_ML_PER_DL));
+            const pct    = (ml / MAX_ML_PER_DL) * 100;
+            const fillPx = (pct / 100) * DL_BEAKER_INNER_H;
+            if (last.liquid) last.liquid.style.height = pct + '%';
+            if (last.surfaceLabel) {
+                last.surfaceLabel.textContent  = formatDl(ml);
+                last.surfaceLabel.style.bottom = Math.max(fillPx + 4, 4) + 'px';
+                last.surfaceLabel.style.display = ml > 0 ? 'block' : 'none';
+            }
+        }
+    }
+
+    #renderBothMode(totalMl) {
+        const row = this.#beakersRow;
+        if (!row) return;
+
+        const lFull  = Math.floor(totalMl / MAX_ML_PER_BEAKER);
+        const dlMl   = totalMl % MAX_ML_PER_BEAKER; // remaining ml after full litres
+        const dlFull = Math.floor(dlMl / MAX_ML_PER_DL);
+        const dlRem  = dlMl % MAX_ML_PER_DL;
+
+        const lTotal  = Math.max(1, lFull);
+        const dlTotal = Math.max(1, dlFull + (dlRem > 0 ? 1 : 0));
+
+        if (this.#lBeakerNodes.length !== lTotal || this.#dlBeakerNodes.length !== dlTotal) {
+            row.innerHTML = '';
+            this.#lBeakerNodes  = [];
+            this.#dlBeakerNodes = [];
+
+            // L beakers (full or empty – partial liter lives in dl group)
+            const lGroup = document.createElement('div');
+            lGroup.className = 'flex items-end gap-6';
+            for (let i = 0; i < lTotal; i++) {
+                const ml  = i < lFull ? MAX_ML_PER_BEAKER : 0;
+                const pct = (ml / MAX_ML_PER_BEAKER) * 100;
+                const { wrapper, liquid, surfaceLabel } = buildBeakerAssembly(pct, formatLiters(ml), ml > 0);
+                lGroup.appendChild(wrapper);
+                this.#lBeakerNodes.push({ liquid, surfaceLabel });
+            }
+            row.appendChild(lGroup);
+
+            const sep = document.createElement('div');
+            sep.className = 'text-2xl font-bold text-soft-muted self-center pb-8';
+            sep.textContent = '+';
+            row.appendChild(sep);
+
+            // dl beakers (the sub-litre remainder)
+            const dlGroup = document.createElement('div');
+            dlGroup.className = 'flex items-end gap-6';
+            for (let i = 0; i < dlTotal; i++) {
+                const ml  = Math.min(MAX_ML_PER_DL, Math.max(0, dlMl - i * MAX_ML_PER_DL));
+                const pct = (ml / MAX_ML_PER_DL) * 100;
+                const { wrapper, liquid, surfaceLabel } = buildDlBeakerAssembly(pct, formatDl(ml), ml > 0);
+                dlGroup.appendChild(wrapper);
+                this.#dlBeakerNodes.push({ liquid, surfaceLabel });
+            }
+            row.appendChild(dlGroup);
+        } else {
+            // In-place update: L beakers may change fill even if count stays the same
+            for (let i = 0; i < this.#lBeakerNodes.length; i++) {
+                const node   = this.#lBeakerNodes[i];
+                const ml     = i < lFull ? MAX_ML_PER_BEAKER : 0;
+                const pct    = (ml / MAX_ML_PER_BEAKER) * 100;
+                const fillPx = (pct / 100) * BEAKER_INNER_H;
+                if (node.liquid) node.liquid.style.height = pct + '%';
+                if (node.surfaceLabel) {
+                    node.surfaceLabel.textContent  = formatLiters(ml);
+                    node.surfaceLabel.style.bottom = Math.max(fillPx + 4, 4) + 'px';
+                    node.surfaceLabel.style.display = ml > 0 ? 'block' : 'none';
+                }
+            }
+            // Update last dl beaker
+            const last   = this.#dlBeakerNodes[dlTotal - 1];
+            const ml     = Math.min(MAX_ML_PER_DL, Math.max(0, dlMl - (dlTotal - 1) * MAX_ML_PER_DL));
+            const pct    = (ml / MAX_ML_PER_DL) * 100;
+            const fillPx = (pct / 100) * DL_BEAKER_INNER_H;
+            if (last?.liquid) last.liquid.style.height = pct + '%';
+            if (last?.surfaceLabel) {
+                last.surfaceLabel.textContent  = formatDl(ml);
+                last.surfaceLabel.style.bottom = Math.max(fillPx + 4, 4) + 'px';
+                last.surfaceLabel.style.display = ml > 0 ? 'block' : 'none';
+            }
+        }
+    }
+
+    #setContainerMode(mode) {
+        this.#containerMode = mode;
+        if (this.#modeBtns) {
+            this.#modeBtns.querySelectorAll('button').forEach(btn => {
+                const active = btn.dataset.mode === mode;
+                btn.className = active
+                    ? 'flex-1 py-1.5 rounded-lg text-xs font-bold bg-soft-blue text-white border border-soft-blue transition-all'
+                    : 'flex-1 py-1.5 rounded-lg text-xs font-bold bg-soft-bg text-soft-muted border border-soft-border transition-all hover:border-soft-blue';
+            });
+        }
+        this.#lBeakerNodes  = [];
+        this.#dlBeakerNodes = [];
+        if (this.#beakersRow) this.#beakersRow.innerHTML = '';
+        this.#render(this.#engine.getReading());
     }
 
     #setReprDigit(el, value) {
