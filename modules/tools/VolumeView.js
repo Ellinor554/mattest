@@ -10,6 +10,27 @@ const DL_BEAKER_H       = 200;  // px – dl beaker body height (shorter than L)
 const DL_BEAKER_INNER_H = DL_BEAKER_H - BEAKER_BORDER_B;
 const MAX_ML_PER_DL     = 100;  // 1 dl = 100 ml per dl beaker
 
+// Place-value chart – mini container configs (L → ml)
+const PV_CONFIGS = [
+    { unit: 'L',  get: t => Math.floor(t / 1000),             w: 44, h: 50, bodyBot: '#4a6e8f', bodyTop: '#7ba0c4', rim: '#3a5f82' },
+    { unit: 'dl', get: t => Math.floor((t % 1000) / 100),     w: 56, h: 33, bodyBot: '#6f9ab8', bodyTop: '#a8c8e0', rim: '#5b80a5' },
+    { unit: 'cl', get: t => Math.floor((t % 100) / 10),       w: 44, h: 20, bodyBot: '#6a9a80', bodyTop: '#9dc4ac', rim: '#4f7c75' },
+    { unit: 'ml', get: t => t % 10,                            w: 38, h: 12, bodyBot: '#3d6059', bodyTop: '#6a9a80', rim: '#2d4a44' },
+];
+
+function buildMiniUnitContainer(cfg) {
+    const el = document.createElement('div');
+    el.style.cssText = [
+        `width:${cfg.w}px`, `height:${cfg.h}px`,
+        `background:linear-gradient(to top,${cfg.bodyBot},${cfg.bodyTop})`,
+        'border-radius:0 0 4px 4px', 'position:relative', 'flex-shrink:0',
+    ].join(';');
+    const rim = document.createElement('div');
+    rim.style.cssText = `position:absolute;top:-3px;left:-1px;right:-1px;height:4px;background:${cfg.rim};border-radius:2px 2px 0 0;`;
+    el.appendChild(rim);
+    return el;
+}
+
 /** Format ml as Swedish dl string, e.g. 50 → "0,5 dl". */
 function formatDl(ml) {
     const dl = ml / 100;
@@ -224,10 +245,13 @@ export class VolumeView {
         modeHeading.textContent = 'Visa behållare';
         sidebar.appendChild(modeHeading);
 
+        const modesWrap = document.createElement('div');
+        modesWrap.className = 'flex flex-col gap-1';
+        this.#modeBtns = modesWrap;
+
+        // Row 1: unit container modes
         const modeRow = document.createElement('div');
         modeRow.className = 'flex gap-1';
-        this.#modeBtns = modeRow;
-
         for (const m of [{ key: 'L', label: 'L' }, { key: 'both', label: 'L + dl' }, { key: 'dl', label: 'dl' }]) {
             const btn = document.createElement('button');
             btn.dataset.mode = m.key;
@@ -238,7 +262,17 @@ export class VolumeView {
             btn.addEventListener('click', () => this.#setContainerMode(m.key));
             modeRow.appendChild(btn);
         }
-        sidebar.appendChild(modeRow);
+        modesWrap.appendChild(modeRow);
+
+        // Row 2: place value mode
+        const pvBtn = document.createElement('button');
+        pvBtn.dataset.mode = 'placevalue';
+        pvBtn.textContent  = 'Platsvärde';
+        pvBtn.className    = 'w-full py-1.5 rounded-lg text-xs font-bold bg-soft-bg text-soft-muted border border-soft-border transition-all hover:border-soft-blue';
+        pvBtn.addEventListener('click', () => this.#setContainerMode('placevalue'));
+        modesWrap.appendChild(pvBtn);
+
+        sidebar.appendChild(modesWrap);
         sidebar.appendChild(this.#hr());
 
         // Heading
@@ -463,8 +497,13 @@ export class VolumeView {
     }
 
     #renderBeakers(totalMl) {
-        if (this.#containerMode === 'L')    return this.#renderLSection(totalMl);
-        if (this.#containerMode === 'dl')   return this.#renderDlSection(totalMl);
+        if (this.#containerMode === 'placevalue') {
+            this.#beakersRow.className = 'flex items-center justify-center';
+            return this.#renderPlaceValue(totalMl);
+        }
+        this.#beakersRow.className = 'flex items-end gap-6 flex-wrap justify-center';
+        if (this.#containerMode === 'L')  return this.#renderLSection(totalMl);
+        if (this.#containerMode === 'dl') return this.#renderDlSection(totalMl);
         this.#renderBothMode(totalMl);
     }
 
@@ -605,14 +644,82 @@ export class VolumeView {
         }
     }
 
+    #renderPlaceValue(totalMl) {
+        const row = this.#beakersRow;
+        if (!row) return;
+        row.innerHTML   = '';
+        this.#lBeakerNodes  = [];
+        this.#dlBeakerNodes = [];
+
+        const chart = document.createElement('div');
+        chart.style.cssText = [
+            'display:flex', 'align-items:stretch',
+            'background:white',
+            'border:2px solid #d6d4d0',
+            'border-radius:16px',
+            'overflow:hidden',
+            'box-shadow:0 4px 20px rgba(74,75,80,0.10)',
+        ].join(';');
+
+        PV_CONFIGS.forEach((cfg, ci) => {
+            const count  = cfg.get(totalMl);
+            const isLast = ci === PV_CONFIGS.length - 1;
+
+            const col = document.createElement('div');
+            col.style.cssText = [
+                'display:flex', 'flex-direction:column', 'align-items:center',
+                'padding:16px 20px 20px',
+                `border-right:${isLast ? 'none' : '2px solid #d6d4d0'}`,
+                'min-width:110px',
+            ].join(';');
+
+            // Unit label at top
+            const unitLbl = document.createElement('div');
+            unitLbl.style.cssText = `font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:${cfg.rim};margin-bottom:12px;font-family:'Nunito',sans-serif;`;
+            unitLbl.textContent = cfg.unit;
+            col.appendChild(unitLbl);
+
+            // Stack area — flex-col-reverse so first container sits at the bottom
+            const stack = document.createElement('div');
+            stack.style.cssText = [
+                'display:flex', 'flex-direction:column-reverse',
+                'align-items:center', 'gap:4px',
+                'flex:1', 'min-height:490px',
+                'justify-content:flex-start',
+            ].join(';');
+
+            if (count === 0) {
+                const ghost = document.createElement('div');
+                ghost.style.cssText = `width:${cfg.w}px;height:${cfg.h}px;border:2px dashed ${cfg.bodyBot};border-radius:0 0 4px 4px;opacity:0.2;`;
+                stack.appendChild(ghost);
+            } else {
+                for (let i = 0; i < count; i++) {
+                    stack.appendChild(buildMiniUnitContainer(cfg));
+                }
+            }
+            col.appendChild(stack);
+
+            // Digit at bottom
+            const digit = document.createElement('div');
+            digit.style.cssText = `font-size:30px;font-weight:800;color:${cfg.rim};margin-top:14px;font-family:'Nunito',sans-serif;line-height:1;`;
+            digit.textContent = String(count);
+            col.appendChild(digit);
+
+            chart.appendChild(col);
+        });
+
+        row.appendChild(chart);
+    }
+
     #setContainerMode(mode) {
         this.#containerMode = mode;
         if (this.#modeBtns) {
             this.#modeBtns.querySelectorAll('button').forEach(btn => {
-                const active = btn.dataset.mode === mode;
-                btn.className = active
-                    ? 'flex-1 py-1.5 rounded-lg text-xs font-bold bg-soft-blue text-white border border-soft-blue transition-all'
-                    : 'flex-1 py-1.5 rounded-lg text-xs font-bold bg-soft-bg text-soft-muted border border-soft-border transition-all hover:border-soft-blue';
+                const active   = btn.dataset.mode === mode;
+                const sizeClass = btn.dataset.mode === 'placevalue' ? 'w-full' : 'flex-1';
+                btn.className  = active
+                    ? `${sizeClass} py-1.5 rounded-lg text-xs font-bold bg-soft-blue text-white border border-soft-blue transition-all`
+                    : `${sizeClass} py-1.5 rounded-lg text-xs font-bold bg-soft-bg text-soft-muted border border-soft-border transition-all hover:border-soft-blue`;
             });
         }
         this.#lBeakerNodes  = [];
