@@ -66,8 +66,11 @@ export class ToolRegistry {
         btn.className = 'flex items-center gap-2 px-4 py-2 bg-soft-blue text-white font-bold rounded-xl text-sm hover:opacity-90 transition-opacity shadow-sm';
         btn.innerHTML = '<i class="fas fa-expand"></i> Helskärm';
         btn.addEventListener('click', () => {
-            if (document.documentElement.requestFullscreen) {
-                document.documentElement.requestFullscreen();
+            const el = document.documentElement;
+            if (el.requestFullscreen) {
+                el.requestFullscreen();
+            } else if (el.webkitRequestFullscreen) {
+                el.webkitRequestFullscreen();
             }
         });
         return btn;

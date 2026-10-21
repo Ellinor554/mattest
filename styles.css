@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
 body { font-family: 'Nunito', sans-serif; touch-action: none; overflow: hidden; background-color: #f4f3ef; }
+.h-screen { height: 100dvh; }
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #d6d4d0; border-radius: 4px; }
