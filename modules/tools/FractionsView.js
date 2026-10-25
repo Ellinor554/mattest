@@ -8,6 +8,7 @@ const FRAC_DEFS = [
     { d: 5,  color: '#dec894', label: 'Femtedelar (1/5)' },
     { d: 6,  color: '#8db1d1', label: 'Sjättedelar (1/6)' },
     { d: 8,  color: '#8bb39c', label: 'Åttondelar (1/8)' },
+    { d: 9,  color: '#c4956a', label: 'Niondelar (1/9)' },
     { d: 10, color: '#d58b99', label: 'Tiondelar (1/10)' },
     { d: 12, color: '#938db3', label: 'Tolftedelar (1/12)' },
 ];
