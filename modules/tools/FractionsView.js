@@ -311,6 +311,7 @@ export class FractionsView {
         this.#workspace.appendChild(wrapper);
         this.#applyFracTransform(wrapper);
         this.#addMoveHandle(wrapper);
+        this.#addDeleteHandle(wrapper);
         if (d > 1) wrapper.appendChild(this.#makeNumeratorStepper(wrapper, d));
         this.#addResizeHandle(wrapper);
 
@@ -424,6 +425,22 @@ export class FractionsView {
             e.preventDefault();
             e.stopPropagation();
             this.#fracStartDrag(el, e);
+        });
+        el.appendChild(handle);
+    }
+
+    #addDeleteHandle(el) {
+        const handle = document.createElement('button');
+        handle.style.cssText = 'position:absolute;top:-28px;right:0;width:22px;height:22px;background:white;border:1.5px solid #e0a0a0;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#c0605a;user-select:none;touch-action:none;z-index:10;box-shadow:0 2px 6px rgba(0,0,0,0.12);line-height:1;padding:0;';
+        handle.textContent = '×';
+        handle.setAttribute('aria-label', 'Ta bort');
+        handle.title = 'Ta bort';
+        handle.addEventListener('pointerdown', e => e.stopPropagation());
+        handle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const pieceId = parseInt(el.dataset.pieceId, 10);
+            if (!isNaN(pieceId)) this.#engine.removePiece(pieceId);
+            el.remove();
         });
         el.appendChild(handle);
     }
@@ -560,6 +577,7 @@ export class FractionsView {
         this.#workspace.appendChild(el);
         this.#applyFracTransform(el);
         this.#addFracDragListener(el);
+        this.#addDeleteHandle(el);
         this.#addResizeHandle(el);
         return el;
     }

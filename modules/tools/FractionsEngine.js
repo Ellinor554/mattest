@@ -36,6 +36,10 @@ export class FractionsEngine {
         if (piece) Object.assign(piece, partial);
     }
 
+    removePiece(id) {
+        this.#pieces = this.#pieces.filter(p => p.id !== id);
+    }
+
     clearPieces() {
         this.#pieces = [];
     }
